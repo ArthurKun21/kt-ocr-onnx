@@ -1,0 +1,26 @@
+# Build files
+.gradle
+.kotlin
+build
+
+# IDE files
+/captures
+.externalNativeBuild
+.cxx
+*.iml
+
+# Ignore all files in the .idea directory except for icon.png
+.idea/*
+!.idea/icon.png
+
+# Configuration files
+local.properties
+
+# macOS specific files
+.DS_Store
+
+# Material Design for MkDocs
+.venv/
+.cache/
+site/
+uv.lock

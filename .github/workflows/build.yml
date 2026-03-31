@@ -1,0 +1,88 @@
+name: build
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '.idea/**'
+      - 'jitpack.yml'
+      - '**/.gitignore'
+      - '**/*.md'
+      - '.github/**.md'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'gradle/**'
+      - 'samples/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'kt-ocr-onnx/build.gradle.kts'
+      - 'kt-ocr-onnx/src/androidMain/**'
+      - 'kt-ocr-onnx/src/commonMain/**'
+      - 'kt-ocr-onnx/src/jvmMain/**'
+      - 'kt-ocr-onnx/src/jvmCommonMain/**'
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRO: 'temurin'
+
+concurrency:
+  group: ${{ github.ref }}-build
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  Build-Android:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v5
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRO }}
+
+      - name: Set up gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Compile Kt-OCR-ONNX Android
+        run: |
+          ./gradlew :kt-ocr-onnx:compileKotlinAndroid --parallel
+
+      # - name: Upload artifacts
+      #   uses: actions/upload-artifact@v7
+      #   with:
+      #     name: app-${{ github.run_number }}
+      #     path: app/build/outputs/apk/release/app-release.apk
+  
+  Build-Desktop:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v5
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRO }}
+
+      - name: Set up gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Compile Kt-OCR-ONNX
+        run: |
+          ./gradlew :kt-ocr-onnx:compileKotlinJvm --parallel
