@@ -40,8 +40,6 @@ public actual class PaddleOcrService actual constructor(
     private val detection = PaddleOcrDetection(scope, DET_MODEL_PATH)
     private val recognition = PaddleOcrRecognition(scope, MODEL_PATH, DICT_PATH)
 
-    // region ByteArray overloads
-
     actual override suspend fun detectText(byteArray: ByteArray): List<DetectedResults> {
         return withByteArrayImage(byteArray) { detectTextInternal(it) }
     }
@@ -53,10 +51,6 @@ public actual class PaddleOcrService actual constructor(
     actual override suspend fun detectAndRecognizeText(byteArray: ByteArray): List<OcrResult> {
         return withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it) }
     }
-
-    // endregion
-
-    // region Bitmap overloads
 
     override suspend fun detectText(bitmap: Bitmap): List<DetectedResults> {
         return withBitmapImage(bitmap) { detectTextInternal(it) }
@@ -70,10 +64,6 @@ public actual class PaddleOcrService actual constructor(
         return withBitmapImage(bitmap) { detectAndRecognizeTextInternal(it) }
     }
 
-    // endregion
-
-    // region Uri overloads
-
     override suspend fun detectText(uri: Uri): List<DetectedResults> {
         return detectText(readUriBytes(uri))
     }
@@ -86,10 +76,6 @@ public actual class PaddleOcrService actual constructor(
         return detectAndRecognizeText(readUriBytes(uri))
     }
 
-    // endregion
-
-    // region Mat overloads
-
     override suspend fun detectText(mat: Mat): List<DetectedResults> {
         return withMatImage(mat) { detectTextInternal(it) }
     }
@@ -101,10 +87,6 @@ public actual class PaddleOcrService actual constructor(
     override suspend fun detectAndRecognizeText(mat: Mat): List<OcrResult> {
         return withMatImage(mat) { detectAndRecognizeTextInternal(it) }
     }
-
-    // endregion
-
-    // region Internal CvImage-based implementations
 
     private suspend fun detectTextInternal(image: CvImage): List<DetectedResults> {
         return detection.detect(image)
@@ -178,10 +160,6 @@ public actual class PaddleOcrService actual constructor(
         return results
     }
 
-    // endregion
-
-    // region Helpers
-
     private suspend fun <T> withByteArrayImage(byteArray: ByteArray, block: suspend (CvImage) -> T): T {
         val image = CvImage.fromByteArray(byteArray, isColor = true, tag = "ocr_input")
         val rgbImage = image.toRgbCvImage()
@@ -222,8 +200,6 @@ public actual class PaddleOcrService actual constructor(
                 IllegalStateException("Failed to open input stream for URI: $uri"),
             )
     }
-
-    // endregion
 
     actual override fun close() {
         detection.close()

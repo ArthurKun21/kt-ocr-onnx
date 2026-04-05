@@ -31,8 +31,6 @@ public actual class PaddleOcrService actual constructor(
     private val detection = PaddleOcrDetection(scope, DET_MODEL_PATH)
     private val recognition = PaddleOcrRecognition(scope, MODEL_PATH, DICT_PATH)
 
-    // region ByteArray overloads
-
     actual override suspend fun detectText(byteArray: ByteArray): List<DetectedResults> {
         return withByteArrayImage(byteArray) { detectTextInternal(it) }
     }
@@ -45,10 +43,6 @@ public actual class PaddleOcrService actual constructor(
         return withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it) }
     }
 
-    // endregion
-
-    // region Mat overloads
-
     override suspend fun detectText(mat: Mat): List<DetectedResults> {
         return withMatImage(mat) { detectTextInternal(it) }
     }
@@ -60,10 +54,6 @@ public actual class PaddleOcrService actual constructor(
     override suspend fun detectAndRecognizeText(mat: Mat): List<OcrResult> {
         return withMatImage(mat) { detectAndRecognizeTextInternal(it) }
     }
-
-    // endregion
-
-    // region Internal CvImage-based implementations
 
     private suspend fun detectTextInternal(image: CvImage): List<DetectedResults> {
         return detection.detect(image)
@@ -137,10 +127,6 @@ public actual class PaddleOcrService actual constructor(
         return results
     }
 
-    // endregion
-
-    // region Helpers
-
     private suspend fun <T> withByteArrayImage(byteArray: ByteArray, block: suspend (CvImage) -> T): T {
         val image = CvImage.fromByteArray(byteArray, isColor = true, tag = "ocr_input")
         val rgbImage = image.toRgbCvImage()
@@ -162,8 +148,6 @@ public actual class PaddleOcrService actual constructor(
             // Do not close the original NativeMat — the caller owns the Mat
         }
     }
-
-    // endregion
 
     actual override fun close() {
         detection.close()
