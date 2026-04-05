@@ -5,6 +5,9 @@ import com.github.arthurkun.koo.imaging.NativeMat
 import com.github.arthurkun.koo.imaging.cropPerspective
 import com.github.arthurkun.koo.imaging.initOpenCV
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import logcat.logcat
 import org.bytedeco.opencv.opencv_core.Mat
 
@@ -15,20 +18,18 @@ import org.bytedeco.opencv.opencv_core.Mat
  * This service acts as the public entry point for OCR operations, delegating
  * the actual detection and recognition work to the respective engines.
  */
-internal actual class PaddleOcrService actual constructor(
-    scope: CoroutineScope,
+public actual class PaddleOcrService actual constructor(
     @Suppress("UNUSED_PARAMETER") platformContext: Any?,
-    detModelPath: String,
-    recModelPath: String,
-    dictPath: String,
 ) : JvmOcrApi {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     init {
         initOpenCV()
     }
 
-    private val detection = PaddleOcrDetection(scope, detModelPath)
-    private val recognition = PaddleOcrRecognition(scope, recModelPath, dictPath)
+    private val detection = PaddleOcrDetection(scope, DET_MODEL_PATH)
+    private val recognition = PaddleOcrRecognition(scope, MODEL_PATH, DICT_PATH)
 
     // region ByteArray overloads
 
@@ -167,6 +168,7 @@ internal actual class PaddleOcrService actual constructor(
     actual override fun close() {
         detection.close()
         recognition.close()
+        scope.cancel()
     }
 }
 

@@ -3,9 +3,6 @@ package com.github.arthurkun.koo
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isNotEmpty
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -29,12 +26,10 @@ abstract class PaddleOcrServiceTestBase {
     abstract fun loadTestResourceBytes(path: String): ByteArray
 
     protected lateinit var paddleOcrService: OcrApi
-    protected lateinit var testScope: CoroutineScope
 
     @BeforeTest
     open fun setUp() {
-        testScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        paddleOcrService = PaddleOcrService(testScope)
+        paddleOcrService = PaddleOcrService()
     }
 
     @AfterTest

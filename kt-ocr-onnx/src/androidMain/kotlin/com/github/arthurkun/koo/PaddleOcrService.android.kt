@@ -9,6 +9,9 @@ import com.github.arthurkun.koo.imaging.cropPerspective
 import com.github.arthurkun.koo.imaging.cvImageFromBitmap
 import com.github.arthurkun.koo.imaging.initOpenCV
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import logcat.logcat
 import org.opencv.core.Mat
 
@@ -20,24 +23,22 @@ import org.opencv.core.Mat
  * Android-specific concerns like [Bitmap] and [Uri] conversion while delegating
  * the actual detection and recognition work to the respective engines.
  */
-internal actual class PaddleOcrService actual constructor(
-    scope: CoroutineScope,
+public actual class PaddleOcrService actual constructor(
     platformContext: Any?,
-    detModelPath: String,
-    recModelPath: String,
-    dictPath: String,
 ) : AndroidOcrApi {
 
     private val context: Context = requireNotNull(platformContext as? Context) {
         "Android PaddleOcrService requires a non-null Context as platformContext"
     }
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     init {
         initOpenCV()
     }
 
-    private val detection = PaddleOcrDetection(scope, detModelPath)
-    private val recognition = PaddleOcrRecognition(scope, recModelPath, dictPath)
+    private val detection = PaddleOcrDetection(scope, DET_MODEL_PATH)
+    private val recognition = PaddleOcrRecognition(scope, MODEL_PATH, DICT_PATH)
 
     // region ByteArray overloads
 
@@ -227,6 +228,7 @@ internal actual class PaddleOcrService actual constructor(
     actual override fun close() {
         detection.close()
         recognition.close()
+        scope.cancel()
     }
 }
 
