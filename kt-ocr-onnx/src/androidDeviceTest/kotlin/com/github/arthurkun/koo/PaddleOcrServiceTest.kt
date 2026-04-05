@@ -49,7 +49,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     @Before
     override fun setUp() {
         testScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-        paddleOcrService = PaddleOcrService(testScope)
+        paddleOcrService = PaddleOcrService(testScope, platformContext = context)
     }
 
     @After
@@ -60,7 +60,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     @Test
     fun testDetectAndRecognizeTextFromTestImageBitmap() = runTest {
         val bitmap = loadImageBitmap("ocr/noble-phantasm-en.png")
-        val results = (paddleOcrService as PaddleOcrService).detectAndRecognizeText(bitmap)
+        val results = (paddleOcrService as AndroidOcrApi).detectAndRecognizeText(bitmap)
         assertThat(results).isNotEmpty()
         val combinedText = results.joinToString(" ") { it.text }
         val normalized = combinedText.replace(Regex("\\s+"), " ").trim()

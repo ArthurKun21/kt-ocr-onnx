@@ -22,6 +22,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.resources)
+            api(libs.kotlinx.io.core)
         }
 
         val jvmCommonMain by creating {

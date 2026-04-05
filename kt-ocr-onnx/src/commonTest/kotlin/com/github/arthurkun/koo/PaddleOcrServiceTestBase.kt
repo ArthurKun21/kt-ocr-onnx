@@ -3,7 +3,6 @@ package com.github.arthurkun.koo
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isNotEmpty
-import com.github.arthurkun.koo.imaging.CvImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,30 +42,15 @@ abstract class PaddleOcrServiceTestBase {
         paddleOcrService.close()
     }
 
-    /**
-     * Loads a test image as a BGR [CvImage] suitable for OCR processing.
-     *
-     * The image is loaded in BGR format (OpenCV default), which is the expected
-     * input format for the detection + recognition pipeline.
-     *
-     * @param path The relative path to the test image
-     * @return A BGR [CvImage] ready for OCR
-     */
-    protected suspend fun loadImageCvImage(path: String): CvImage {
-        val bytes = loadTestResourceBytes(path)
-        return CvImage.fromByteArray(bytes, isColor = true, tag = "test")
-    }
-
     @Test
     fun testDetectAndRecognizeTextFromTestImage() = runTest {
-        val rgbImage = loadImageCvImage("ocr/noble-phantasm-en.png")
-        val results = paddleOcrService.detectAndRecognizeText(rgbImage)
+        val bytes = loadTestResourceBytes("ocr/noble-phantasm-en.png")
+        val results = paddleOcrService.detectAndRecognizeText(bytes)
         assertThat(results).isNotEmpty()
         val combinedText = results.joinToString(" ") { it.text }
         val normalized = combinedText.replace(Regex("\\s+"), " ").trim()
         assertThat(normalized).isNotEmpty()
         assertThat(normalized).contains("Gate of Skye")
         assertThat(normalized).contains("Lv")
-        rgbImage.close()
     }
 }

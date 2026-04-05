@@ -9,5 +9,5 @@ import android.graphics.Bitmap
  * @param tag optional tag for identification
  * @return a new [CvImage] instance
  */
-public fun cvImageFromBitmap(bitmap: Bitmap, tag: String = ""): CvImage =
+internal fun cvImageFromBitmap(bitmap: Bitmap, tag: String = ""): CvImage =
     NativeMat.fromBitmap(bitmap, tag)

@@ -1,6 +1,8 @@
 package com.github.arthurkun.koo
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import com.github.arthurkun.koo.imaging.CvImage
 import com.github.arthurkun.koo.imaging.NativeMat
 import com.github.arthurkun.koo.imaging.cropPerspective
@@ -8,21 +10,27 @@ import com.github.arthurkun.koo.imaging.cvImageFromBitmap
 import com.github.arthurkun.koo.imaging.initOpenCV
 import kotlinx.coroutines.CoroutineScope
 import logcat.logcat
+import org.opencv.core.Mat
 
 /**
  * OCR Service that combines [PaddleOcrDetection] and [PaddleOcrRecognition]
  * to perform full text detection and recognition.
  *
  * This service acts as the public entry point for OCR operations, handling
- * Android-specific concerns like [Bitmap] conversion while delegating
+ * Android-specific concerns like [Bitmap] and [Uri] conversion while delegating
  * the actual detection and recognition work to the respective engines.
  */
 internal actual class PaddleOcrService actual constructor(
     scope: CoroutineScope,
+    platformContext: Any?,
     detModelPath: String,
     recModelPath: String,
     dictPath: String,
 ) : AndroidOcrApi {
+
+    private val context: Context = requireNotNull(platformContext as? Context) {
+        "Android PaddleOcrService requires a non-null Context as platformContext"
+    }
 
     init {
         initOpenCV()
@@ -31,15 +39,81 @@ internal actual class PaddleOcrService actual constructor(
     private val detection = PaddleOcrDetection(scope, detModelPath)
     private val recognition = PaddleOcrRecognition(scope, recModelPath, dictPath)
 
-    actual override suspend fun detectText(image: CvImage): List<DetectedResults> {
+    // region ByteArray overloads
+
+    actual override suspend fun detectText(byteArray: ByteArray): List<DetectedResults> {
+        return withByteArrayImage(byteArray) { detectTextInternal(it) }
+    }
+
+    actual override suspend fun recognizeText(byteArray: ByteArray): RecognitionResult {
+        return withByteArrayImage(byteArray) { recognizeTextInternal(it) }
+    }
+
+    actual override suspend fun detectAndRecognizeText(byteArray: ByteArray): List<OcrResult> {
+        return withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it) }
+    }
+
+    // endregion
+
+    // region Bitmap overloads
+
+    override suspend fun detectText(bitmap: Bitmap): List<DetectedResults> {
+        return withBitmapImage(bitmap) { detectTextInternal(it) }
+    }
+
+    override suspend fun recognizeText(bitmap: Bitmap): RecognitionResult {
+        return withBitmapImage(bitmap) { recognizeTextInternal(it) }
+    }
+
+    override suspend fun detectAndRecognizeText(bitmap: Bitmap): List<OcrResult> {
+        return withBitmapImage(bitmap) { detectAndRecognizeTextInternal(it) }
+    }
+
+    // endregion
+
+    // region Uri overloads
+
+    override suspend fun detectText(uri: Uri): List<DetectedResults> {
+        return detectText(readUriBytes(uri))
+    }
+
+    override suspend fun recognizeText(uri: Uri): RecognitionResult {
+        return recognizeText(readUriBytes(uri))
+    }
+
+    override suspend fun detectAndRecognizeText(uri: Uri): List<OcrResult> {
+        return detectAndRecognizeText(readUriBytes(uri))
+    }
+
+    // endregion
+
+    // region Mat overloads
+
+    override suspend fun detectText(mat: Mat): List<DetectedResults> {
+        return withMatImage(mat) { detectTextInternal(it) }
+    }
+
+    override suspend fun recognizeText(mat: Mat): RecognitionResult {
+        return withMatImage(mat) { recognizeTextInternal(it) }
+    }
+
+    override suspend fun detectAndRecognizeText(mat: Mat): List<OcrResult> {
+        return withMatImage(mat) { detectAndRecognizeTextInternal(it) }
+    }
+
+    // endregion
+
+    // region Internal CvImage-based implementations
+
+    private suspend fun detectTextInternal(image: CvImage): List<DetectedResults> {
         return detection.detect(image)
     }
 
-    actual override suspend fun recognizeText(image: CvImage): RecognitionResult {
+    private suspend fun recognizeTextInternal(image: CvImage): RecognitionResult {
         return recognition.detectText(image)
     }
 
-    actual override suspend fun detectAndRecognizeText(image: CvImage): List<OcrResult> {
+    private suspend fun detectAndRecognizeTextInternal(image: CvImage): List<OcrResult> {
         val nativeMat = image as NativeMat
 
         // Skip detection for images that are already text-line sized;
@@ -103,16 +177,19 @@ internal actual class PaddleOcrService actual constructor(
         return results
     }
 
-    override suspend fun detectText(bitmap: Bitmap): List<DetectedResults> {
-        return withBitmapImage(bitmap) { detectText(it) }
-    }
+    // endregion
 
-    override suspend fun recognizeText(bitmap: Bitmap): RecognitionResult {
-        return withBitmapImage(bitmap) { recognizeText(it) }
-    }
+    // region Helpers
 
-    override suspend fun detectAndRecognizeText(bitmap: Bitmap): List<OcrResult> {
-        return withBitmapImage(bitmap) { detectAndRecognizeText(it) }
+    private suspend fun <T> withByteArrayImage(byteArray: ByteArray, block: suspend (CvImage) -> T): T {
+        val image = CvImage.fromByteArray(byteArray, isColor = true, tag = "ocr_input")
+        val rgbImage = image.toRgbCvImage()
+        return try {
+            block(rgbImage)
+        } finally {
+            image.close()
+            rgbImage.close()
+        }
     }
 
     private suspend fun <T> withBitmapImage(bitmap: Bitmap, block: suspend (CvImage) -> T): T {
@@ -125,6 +202,27 @@ internal actual class PaddleOcrService actual constructor(
             rgbImage.close()
         }
     }
+
+    private suspend fun <T> withMatImage(mat: Mat, block: suspend (CvImage) -> T): T {
+        val image = NativeMat(mat, "ocr_input")
+        val rgbImage = image.toRgbCvImage()
+        return try {
+            block(rgbImage)
+        } finally {
+            rgbImage.close()
+            // Do not close the original NativeMat — the caller owns the Mat
+        }
+    }
+
+    private fun readUriBytes(uri: Uri): ByteArray {
+        return context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: throw OCRException(
+                OCRReason.LoadingError,
+                IllegalStateException("Failed to open input stream for URI: $uri"),
+            )
+    }
+
+    // endregion
 
     actual override fun close() {
         detection.close()

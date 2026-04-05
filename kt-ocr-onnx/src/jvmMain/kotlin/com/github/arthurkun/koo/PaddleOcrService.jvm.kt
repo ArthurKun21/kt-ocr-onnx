@@ -6,6 +6,7 @@ import com.github.arthurkun.koo.imaging.cropPerspective
 import com.github.arthurkun.koo.imaging.initOpenCV
 import kotlinx.coroutines.CoroutineScope
 import logcat.logcat
+import org.bytedeco.opencv.opencv_core.Mat
 
 /**
  * JVM OCR Service that combines [PaddleOcrDetection] and [PaddleOcrRecognition]
@@ -16,10 +17,11 @@ import logcat.logcat
  */
 internal actual class PaddleOcrService actual constructor(
     scope: CoroutineScope,
+    @Suppress("UNUSED_PARAMETER") platformContext: Any?,
     detModelPath: String,
     recModelPath: String,
     dictPath: String,
-) : OcrApi {
+) : JvmOcrApi {
 
     init {
         initOpenCV()
@@ -28,15 +30,49 @@ internal actual class PaddleOcrService actual constructor(
     private val detection = PaddleOcrDetection(scope, detModelPath)
     private val recognition = PaddleOcrRecognition(scope, recModelPath, dictPath)
 
-    actual override suspend fun detectText(image: CvImage): List<DetectedResults> {
+    // region ByteArray overloads
+
+    actual override suspend fun detectText(byteArray: ByteArray): List<DetectedResults> {
+        return withByteArrayImage(byteArray) { detectTextInternal(it) }
+    }
+
+    actual override suspend fun recognizeText(byteArray: ByteArray): RecognitionResult {
+        return withByteArrayImage(byteArray) { recognizeTextInternal(it) }
+    }
+
+    actual override suspend fun detectAndRecognizeText(byteArray: ByteArray): List<OcrResult> {
+        return withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it) }
+    }
+
+    // endregion
+
+    // region Mat overloads
+
+    override suspend fun detectText(mat: Mat): List<DetectedResults> {
+        return withMatImage(mat) { detectTextInternal(it) }
+    }
+
+    override suspend fun recognizeText(mat: Mat): RecognitionResult {
+        return withMatImage(mat) { recognizeTextInternal(it) }
+    }
+
+    override suspend fun detectAndRecognizeText(mat: Mat): List<OcrResult> {
+        return withMatImage(mat) { detectAndRecognizeTextInternal(it) }
+    }
+
+    // endregion
+
+    // region Internal CvImage-based implementations
+
+    private suspend fun detectTextInternal(image: CvImage): List<DetectedResults> {
         return detection.detect(image)
     }
 
-    actual override suspend fun recognizeText(image: CvImage): RecognitionResult {
+    private suspend fun recognizeTextInternal(image: CvImage): RecognitionResult {
         return recognition.detectText(image)
     }
 
-    actual override suspend fun detectAndRecognizeText(image: CvImage): List<OcrResult> {
+    private suspend fun detectAndRecognizeTextInternal(image: CvImage): List<OcrResult> {
         val nativeMat = image as NativeMat
 
         // Skip detection for images that are already text-line sized;
@@ -99,6 +135,34 @@ internal actual class PaddleOcrService actual constructor(
         logcat(TAG) { "detectAndRecognizeText: ${results.size} results" }
         return results
     }
+
+    // endregion
+
+    // region Helpers
+
+    private suspend fun <T> withByteArrayImage(byteArray: ByteArray, block: suspend (CvImage) -> T): T {
+        val image = CvImage.fromByteArray(byteArray, isColor = true, tag = "ocr_input")
+        val rgbImage = image.toRgbCvImage()
+        return try {
+            block(rgbImage)
+        } finally {
+            image.close()
+            rgbImage.close()
+        }
+    }
+
+    private suspend fun <T> withMatImage(mat: Mat, block: suspend (CvImage) -> T): T {
+        val image = NativeMat(mat, "ocr_input")
+        val rgbImage = image.toRgbCvImage()
+        return try {
+            block(rgbImage)
+        } finally {
+            rgbImage.close()
+            // Do not close the original NativeMat — the caller owns the Mat
+        }
+    }
+
+    // endregion
 
     actual override fun close() {
         detection.close()
