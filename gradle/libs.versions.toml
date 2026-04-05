@@ -20,6 +20,7 @@ espresso = "3.7.0"
 logcat = "0.4"
 
 vanniktech-maven-publish = "0.36.0"
+binary-compatibility-validator = "0.17.0"
 
 spotless = "8.4.0"
 ktlint-core = "1.8.0"
@@ -63,3 +64,4 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 compose = { id = "org.jetbrains.compose", version.ref = "compose_multiplatform" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 vanniktech-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech-maven-publish" }
+binary-compatibility-validator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "binary-compatibility-validator" }

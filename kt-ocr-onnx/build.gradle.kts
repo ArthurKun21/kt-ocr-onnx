@@ -3,6 +3,7 @@ plugins {
     id("koo.library.kmp.tests")
     id("koo.compose")
     alias(libs.plugins.vanniktech.maven.publish)
+    alias(libs.plugins.binary.compatibility.validator)
 }
 
 kotlin {
