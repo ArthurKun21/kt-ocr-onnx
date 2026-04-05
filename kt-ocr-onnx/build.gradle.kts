@@ -3,11 +3,15 @@ plugins {
     id("koo.library.kmp.tests")
     id("koo.compose")
     alias(libs.plugins.vanniktech.maven.publish)
-    alias(libs.plugins.binary.compatibility.validator)
 }
 
 kotlin {
     explicitApi()
+
+    @OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
+    abiValidation {
+        enabled.set(true)
+    }
 
     android {
         namespace = "com.github.arthurkun.koo"
