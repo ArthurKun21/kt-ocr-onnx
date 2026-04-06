@@ -32,7 +32,9 @@ kotlin {
         val jvmCommonMain by creating {
             dependsOn(commonMain.get())
             dependencies {
-                implementation(libs.onnxruntime.jvm)
+                // Shared sources require ORT symbols, but the concrete runtime must be
+                // target-specific to avoid packaging both JVM and Android artifacts.
+                compileOnly(libs.onnxruntime.jvm)
                 implementation(libs.clipper2.java)
             }
         }
@@ -48,6 +50,7 @@ kotlin {
         jvmMain {
             dependsOn(jvmCommonMain)
             dependencies {
+                implementation(libs.onnxruntime.jvm)
                 implementation(libs.opencv.jvm)
             }
         }
