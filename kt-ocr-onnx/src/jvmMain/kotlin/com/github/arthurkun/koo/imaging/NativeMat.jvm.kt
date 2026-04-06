@@ -11,11 +11,14 @@ import logcat.logcat
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.javacpp.indexer.FloatIndexer
 import org.bytedeco.javacpp.indexer.UByteIndexer
+import org.bytedeco.opencv.global.opencv_core.BORDER_REPLICATE
 import org.bytedeco.opencv.global.opencv_core.CV_32F
 import org.bytedeco.opencv.global.opencv_core.CV_32FC2
 import org.bytedeco.opencv.global.opencv_core.CV_32FC3
 import org.bytedeco.opencv.global.opencv_core.CV_8U
 import org.bytedeco.opencv.global.opencv_core.CV_8UC1
+import org.bytedeco.opencv.global.opencv_core.ROTATE_90_COUNTERCLOCKWISE
+import org.bytedeco.opencv.global.opencv_core.rotate
 import org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_COLOR
 import org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE
 import org.bytedeco.opencv.global.opencv_imgcodecs.imdecode
@@ -26,9 +29,6 @@ import org.bytedeco.opencv.global.opencv_imgproc.INTER_CUBIC
 import org.bytedeco.opencv.global.opencv_imgproc.cvtColor
 import org.bytedeco.opencv.global.opencv_imgproc.getPerspectiveTransform
 import org.bytedeco.opencv.global.opencv_imgproc.warpPerspective
-import org.bytedeco.opencv.global.opencv_core.BORDER_REPLICATE
-import org.bytedeco.opencv.global.opencv_core.ROTATE_90_COUNTERCLOCKWISE
-import org.bytedeco.opencv.global.opencv_core.rotate
 import org.bytedeco.opencv.opencv_core.Mat
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -278,7 +278,15 @@ internal fun NativeMat.cropPerspective(box: DetectedResults): NativeMat {
 
     val transform = getPerspectiveTransform(srcPts, dstPts)
     val result = Mat()
-    warpPerspective(mat, result, transform, CvSize(dstW, dstH), INTER_CUBIC, BORDER_REPLICATE, org.bytedeco.opencv.opencv_core.Scalar())
+    warpPerspective(
+        mat,
+        result,
+        transform,
+        CvSize(dstW, dstH),
+        INTER_CUBIC,
+        BORDER_REPLICATE,
+        org.bytedeco.opencv.opencv_core.Scalar(),
+    )
 
     if (!result.empty() && result.cols() > 0 && result.rows().toDouble() / result.cols().toDouble() >= 1.5) {
         val rotated = Mat()

@@ -10,9 +10,9 @@ import logcat.LogPriority
 import logcat.asLog
 import logcat.logcat
 import org.opencv.android.Utils
+import org.opencv.core.Core
 import org.opencv.core.CvException
 import org.opencv.core.CvType
-import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.core.MatOfByte
 import org.opencv.core.MatOfPoint2f
