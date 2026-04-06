@@ -3,22 +3,74 @@ package com.github.arthurkun.koo
 /**
  * Exception thrown when an error occurs during the OCR process.
  *
- * @property reason The specific reason why the OCR operation failed.
+ * @param message A human-readable error message describing the OCR failure.
  * @param cause The underlying cause of the exception, if any.
  */
-public class OCRException(
-    public val reason: OCRReason,
+public open class OCRException(
+    message: String,
     cause: Throwable? = null,
-) : Exception(reason.message, cause)
+) : Exception(message, cause)
 
-public sealed class OCRReason(public val message: String) {
-    /**
-     * Indicates that the OCR model failed to initialize.
-     */
-    public data object InitializationError : OCRReason("OCR model initialization failed")
+/**
+ * Model setup failed, including dictionary, ONNX environment, or session creation.
+ */
+public class OCRInitializationException(
+    message: String,
+    cause: Throwable? = null,
+) : OCRException(message, cause)
 
-    /**
-     * Indicates that an error occurred while attempting to load the OCR model into memory.
-     */
-    public data object LoadingError : OCRReason("Error loading OCR model")
-}
+/**
+ * OCR operation attempted after a service or model has already been closed.
+ */
+public class OCRClosedException(
+    message: String,
+    cause: Throwable? = null,
+) : OCRException(message, cause)
+
+/**
+ * Input/output or resource access failed while loading OCR assets or inputs.
+ */
+public class OCRIOException(
+    message: String,
+    cause: Throwable? = null,
+) : OCRException(message, cause)
+
+/**
+ * Raw bytes could not be decoded into a valid image.
+ */
+public class OCRImageDecodeException(
+    message: String,
+    cause: Throwable? = null,
+) : OCRException(message, cause)
+
+/**
+ * Image transformation or pixel access failed.
+ */
+public class OCRImageProcessingException(
+    message: String,
+    cause: Throwable? = null,
+) : OCRException(message, cause)
+
+/**
+ * Generic runtime inference failure while executing OCR.
+ */
+public open class OCRInferenceException(
+    message: String,
+    cause: Throwable? = null,
+) : OCRException(message, cause)
+
+/**
+ * Inference prerequisites are missing or invalid at runtime.
+ */
+public class OCRModelStateException(
+    message: String,
+    cause: Throwable? = null,
+) : OCRInferenceException(message, cause)
+
+/**
+ * Model output has an unexpected shape or type.
+ */
+public class OCRModelOutputException(
+    message: String,
+    cause: Throwable? = null,
+) : OCRInferenceException(message, cause)

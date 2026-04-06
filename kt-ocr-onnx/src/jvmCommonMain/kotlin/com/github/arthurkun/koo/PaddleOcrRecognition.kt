@@ -104,7 +104,11 @@ internal class PaddleOcrRecognition(
             }
 
             initFailureRef.load()?.let { failure ->
-                throw OCRException(OCRReason.InitializationError, cause = failure)
+                throw if (failure is OCRException) {
+                    failure
+                } else {
+                    OCRInitializationException("Recognition model initialization failed", cause = failure)
+                }
             }
 
             logcat(TAG) { "Initializing PaddleOCR model..." }
@@ -112,9 +116,8 @@ internal class PaddleOcrRecognition(
             try {
                 // Load dictionary first
                 val dictionary = loadDictionary()
-                if (dictionary.isEmpty()) {
-                    logcat(LogPriority.ERROR, TAG) { "Failed to load dictionary" }
-                    return@withLock
+                if (dictionary.size <= 1) {
+                    throw OCRInitializationException("Recognition dictionary is empty")
                 }
                 dictionaryRef.store(dictionary)
                 logcat(TAG) { "Dictionary loaded with ${dictionary.size} characters" }
@@ -145,7 +148,7 @@ internal class PaddleOcrRecognition(
                 initFailureRef.store(t)
                 logcat(LogPriority.ERROR, TAG) { "Failed to initialize PaddleOCR: ${t.asLog()}" }
                 cleanup()
-                throw OCRException(OCRReason.InitializationError, cause = t)
+                throw OCRInitializationException("Failed to initialize recognition model", cause = t)
             }
         }
     }
@@ -162,7 +165,7 @@ internal class PaddleOcrRecognition(
      * Characters from the file start at index 1.
      * Space character is appended at the end (use_space_char=True convention).
      *
-     * @return Map of index to character, empty on failure
+     * @return Map of index to character
      */
     private suspend fun loadDictionary(): Map<Int, String> {
         return try {
@@ -189,7 +192,7 @@ internal class PaddleOcrRecognition(
             charDict
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, TAG) { "Failed to load dictionary: ${e.asLog()}" }
-            emptyMap()
+            throw OCRIOException("Failed to load recognition dictionary", cause = e)
         }
     }
 
@@ -200,14 +203,15 @@ internal class PaddleOcrRecognition(
      */
     private suspend fun ensureInitialized() {
         if (isClosed.load()) {
-            throw OCRException(
-                OCRReason.LoadingError,
-                cause = IllegalStateException("Recognition model is already closed"),
-            )
+            throw OCRClosedException("Recognition model is already closed")
         }
 
         initFailureRef.load()?.let { failure ->
-            throw OCRException(OCRReason.InitializationError, cause = failure)
+            throw if (failure is OCRException) {
+                failure
+            } else {
+                OCRInitializationException("Recognition model initialization failed", cause = failure)
+            }
         }
 
         if (!isInitialized.load()) {
@@ -215,8 +219,8 @@ internal class PaddleOcrRecognition(
         }
 
         if (!isInitialized.load()) {
-            throw OCRException(
-                OCRReason.InitializationError,
+            throw OCRInitializationException(
+                "Recognition model initialization failed",
                 cause = IllegalStateException("PaddleOCR initialization failed"),
             )
         }
@@ -244,7 +248,7 @@ internal class PaddleOcrRecognition(
                     throw if (t is OCRException) {
                         t
                     } else {
-                        OCRException(OCRReason.LoadingError, cause = t)
+                        OCRInferenceException("Error during OCR inference", cause = t)
                     }
                 }
             }
@@ -259,12 +263,21 @@ internal class PaddleOcrRecognition(
      */
     private fun runInference(inputImage: CvImage): RecognitionResult {
         val session = ortSessionRef.load()
-            ?: throw OCRException(OCRReason.LoadingError, IllegalStateException("Session not initialized"))
+            ?: throw OCRModelStateException(
+                "Recognition session not initialized",
+                IllegalStateException("Session not initialized"),
+            )
         val env = ortEnvRef.load()
-            ?: throw OCRException(OCRReason.LoadingError, IllegalStateException("Environment not initialized"))
+            ?: throw OCRModelStateException(
+                "Recognition environment not initialized",
+                IllegalStateException("Environment not initialized"),
+            )
         val dictionary = dictionaryRef.load()
         if (dictionary.isEmpty()) {
-            throw OCRException(OCRReason.LoadingError, IllegalStateException("Dictionary not loaded"))
+            throw OCRModelStateException(
+                "Recognition dictionary not loaded",
+                IllegalStateException("Dictionary not loaded"),
+            )
         }
 
         // Preprocess image
@@ -279,8 +292,8 @@ internal class PaddleOcrRecognition(
 
         return try {
             val outputTensor = output.get(0).value as? Array<*>
-                ?: throw OCRException(
-                    OCRReason.LoadingError,
+                ?: throw OCRModelOutputException(
+                    "Unexpected recognition output type",
                     cause = IllegalStateException("Unexpected recognition output type"),
                 )
 
@@ -310,8 +323,8 @@ internal class PaddleOcrRecognition(
      */
     private fun preprocessImage(inputImage: CvImage, env: OrtEnvironment): OnnxTensor {
         if (inputImage.isEmpty()) {
-            throw OCRException(
-                OCRReason.LoadingError,
+            throw OCRImageProcessingException(
+                "Input image is empty",
                 cause = IllegalArgumentException("Input image is empty"),
             )
         }
@@ -387,8 +400,8 @@ internal class PaddleOcrRecognition(
 
         // Output shape is [1, seq_len, num_classes]
         val batchOutput = output.firstOrNull() as? Array<*>
-            ?: throw OCRException(
-                OCRReason.LoadingError,
+            ?: throw OCRModelOutputException(
+                "Recognition output missing batch dimension",
                 cause = IllegalStateException("Recognition output missing batch dimension"),
             )
 

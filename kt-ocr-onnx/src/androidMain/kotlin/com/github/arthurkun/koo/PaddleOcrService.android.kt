@@ -150,8 +150,8 @@ public actual class PaddleOcrService actual constructor(
 
     private fun readUriBytes(uri: Uri): ByteArray {
         return context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: throw OCRException(
-                OCRReason.LoadingError,
+            ?: throw OCRIOException(
+                "Failed to open input stream for URI: $uri",
                 IllegalStateException("Failed to open input stream for URI: $uri"),
             )
     }
