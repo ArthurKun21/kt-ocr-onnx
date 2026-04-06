@@ -22,7 +22,7 @@ internal expect class NativeMat : CvImage {
 
     override fun toRgbCvImage(): NativeMat
 
-    override fun getPixel(y: Int, x: Int): DoubleArray?
+    override fun getPixel(y: Int, x: Int): DoubleArray
 
     override fun convertToFloat(): NativeMat
 

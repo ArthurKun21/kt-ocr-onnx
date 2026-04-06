@@ -5,10 +5,9 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import com.github.arthurkun.koo.imaging.CvImage
 import com.github.arthurkun.koo.resources.Res
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -82,7 +81,7 @@ import kotlin.time.Duration.Companion.seconds
  * - **Output**: Log probabilities for each character class at each timestep
  */
 internal class PaddleOcrRecognition(
-    scope: CoroutineScope,
+    @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
     private val modelPath: String = MODEL_PATH,
     private val dictPath: String = DICT_PATH,
 ) : AutoCloseable {
@@ -94,19 +93,20 @@ internal class PaddleOcrRecognition(
     private val ortSessionRef = AtomicReference<OrtSession?>(null)
     private val dictionaryRef = AtomicReference<Map<Int, String>>(emptyMap())
 
+    private val initFailureRef = AtomicReference<Throwable?>(null)
     private val isInitialized = AtomicBoolean(false)
-    private val isInUse = AtomicBoolean(false)
-
-    private val initJob: Job
-
-    init {
-        initJob = scope.launch {
-            initializeModel()
-        }
-    }
+    private val isClosed = AtomicBoolean(false)
 
     private suspend fun initializeModel() = withContext(dispatcher) {
         mutex.withLock {
+            if (isInitialized.load()) {
+                return@withLock
+            }
+
+            initFailureRef.load()?.let { failure ->
+                throw OCRException(OCRReason.InitializationError, cause = failure)
+            }
+
             logcat(TAG) { "Initializing PaddleOCR model..." }
 
             try {
@@ -128,17 +128,24 @@ internal class PaddleOcrRecognition(
                 logcat(TAG) { "Model loaded, size: ${modelBytes.size} bytes" }
 
                 // Create session
-                val sessionOptions = OrtSession.SessionOptions().apply {
-                    setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                val session = OrtSession.SessionOptions().use { sessionOptions ->
+                    sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                    env.createSession(modelBytes, sessionOptions)
                 }
-                val session = env.createSession(modelBytes, sessionOptions)
                 ortSessionRef.store(session)
 
                 isInitialized.store(true)
                 logcat(LogPriority.INFO, TAG) { "PaddleOCR initialized successfully" }
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, TAG) { "Failed to initialize PaddleOCR: ${e.asLog()}" }
+            } catch (t: Throwable) {
+                if (t is CancellationException) {
+                    cleanup()
+                    throw t
+                }
+
+                initFailureRef.store(t)
+                logcat(LogPriority.ERROR, TAG) { "Failed to initialize PaddleOCR: ${t.asLog()}" }
                 cleanup()
+                throw OCRException(OCRReason.InitializationError, cause = t)
             }
         }
     }
@@ -192,11 +199,21 @@ internal class PaddleOcrRecognition(
      * @throws OCRException if initialization failed
      */
     private suspend fun ensureInitialized() {
-        if (!initJob.isCompleted) {
-            logcat(TAG) { "Waiting for PaddleOCR initialization..." }
-            initJob.join()
-            logcat(TAG) { "PaddleOCR initialization job finished." }
+        if (isClosed.load()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalStateException("Recognition model is already closed"),
+            )
         }
+
+        initFailureRef.load()?.let { failure ->
+            throw OCRException(OCRReason.InitializationError, cause = failure)
+        }
+
+        if (!isInitialized.load()) {
+            initializeModel()
+        }
+
         if (!isInitialized.load()) {
             throw OCRException(
                 OCRReason.InitializationError,
@@ -217,13 +234,18 @@ internal class PaddleOcrRecognition(
         return mutex.withLock {
             withContext(dispatcher) {
                 try {
-                    isInUse.store(true)
                     runInference(image)
-                } catch (e: Exception) {
-                    logcat(LogPriority.ERROR, TAG) { "Error during OCR: ${e.asLog()}" }
-                    RecognitionResult("", 0f)
-                } finally {
-                    isInUse.store(false)
+                } catch (t: Throwable) {
+                    if (t is CancellationException) {
+                        throw t
+                    }
+
+                    logcat(LogPriority.ERROR, TAG) { "Error during OCR: ${t.asLog()}" }
+                    throw if (t is OCRException) {
+                        t
+                    } else {
+                        OCRException(OCRReason.LoadingError, cause = t)
+                    }
                 }
             }
         }
@@ -249,18 +271,24 @@ internal class PaddleOcrRecognition(
         val inputTensor = preprocessImage(inputImage, env)
 
         // Run inference
-        val output = session.run(mapOf("x" to inputTensor))
-        inputTensor.close()
+        val output = try {
+            session.run(mapOf("x" to inputTensor))
+        } finally {
+            inputTensor.close()
+        }
 
-        // Get output tensor
-        val outputTensor = output.get(0).value as Array<*>
+        return try {
+            val outputTensor = output.get(0).value as? Array<*>
+                ?: throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("Unexpected recognition output type"),
+                )
 
-        // Decode result using CTC decoding
-        val result = ctcDecode(outputTensor, dictionary)
-
-        output.close()
-
-        return result
+            // Decode result using CTC decoding
+            ctcDecode(outputTensor, dictionary)
+        } finally {
+            output.close()
+        }
     }
 
     /**
@@ -282,13 +310,9 @@ internal class PaddleOcrRecognition(
      */
     private fun preprocessImage(inputImage: CvImage, env: OrtEnvironment): OnnxTensor {
         if (inputImage.isEmpty()) {
-            logcat(LogPriority.WARN, TAG) { "Input image is empty, cannot preprocess." }
-            // Return a zero-filled tensor for graceful failure
-            val buffer = FloatBuffer.allocate(1 * CHANNELS * TARGET_HEIGHT * TARGET_WIDTH)
-            return OnnxTensor.createTensor(
-                env,
-                buffer,
-                longArrayOf(1, CHANNELS.toLong(), TARGET_HEIGHT.toLong(), TARGET_WIDTH.toLong()),
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Input image is empty"),
             )
         }
         val h = inputImage.height
@@ -321,12 +345,10 @@ internal class PaddleOcrRecognition(
                 for (y in 0 until TARGET_HEIGHT) {
                     for (x in 0 until resizedW) {
                         val pixel = floatImage.getPixel(y, x)
-                        if (pixel != null) {
-                            // Normalization: (pixel/255 - 0.5) / 0.5
-                            val normalized = (pixel[c].toFloat() / 255.0f - 0.5f) / 0.5f
-                            val index = c * TARGET_HEIGHT * TARGET_WIDTH + y * TARGET_WIDTH + x
-                            buffer.put(index, normalized)
-                        }
+                        // Normalization: (pixel/255 - 0.5) / 0.5
+                        val normalized = (pixel[c].toFloat() / 255.0f - 0.5f) / 0.5f
+                        val index = c * TARGET_HEIGHT * TARGET_WIDTH + y * TARGET_WIDTH + x
+                        buffer.put(index, normalized)
                     }
                 }
             }
@@ -364,11 +386,18 @@ internal class PaddleOcrRecognition(
         val confidences = mutableListOf<Float>()
 
         // Output shape is [1, seq_len, num_classes]
-        val batchOutput = output[0] as Array<FloatArray>
+        val batchOutput = output.firstOrNull() as? Array<*>
+            ?: throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalStateException("Recognition output missing batch dimension"),
+            )
 
         var prevIdx = -1
 
-        for (timestep in batchOutput) {
+        for (timestepRaw in batchOutput) {
+            val timestep = timestepRaw as? FloatArray ?: continue
+            if (timestep.isEmpty()) continue
+
             // Find the index with maximum logit (argmax)
             var maxIdx = 0
             var maxVal = timestep[0]
@@ -383,8 +412,7 @@ internal class PaddleOcrRecognition(
             if (maxIdx != prevIdx && maxIdx != 0) {
                 dictionary[maxIdx]?.let { char ->
                     charList.add(char)
-                    // Compute softmax probability for this timestep's max class
-                    confidences.add(softmaxMax(timestep, maxIdx))
+                    confidences.add(maxVal)
                 }
             }
 
@@ -394,15 +422,6 @@ internal class PaddleOcrRecognition(
         val text = charList.joinToString("")
         val score = if (confidences.isEmpty()) 0f else confidences.average().toFloat()
         return RecognitionResult(text, score)
-    }
-
-    private fun softmaxMax(logits: FloatArray, maxIdx: Int): Float {
-        val maxLogit = logits[maxIdx]
-        var sumExp = 0.0
-        for (v in logits) {
-            sumExp += kotlin.math.exp((v - maxLogit).toDouble())
-        }
-        return (1.0 / sumExp).toFloat()
     }
 
     /**
@@ -428,8 +447,12 @@ internal class PaddleOcrRecognition(
     }
 
     override fun close() {
+        if (!isClosed.compareAndSet(false, true)) {
+            return
+        }
+
         try {
-            runBlocking(dispatcher) {
+            runBlocking {
                 mutex.withLock {
                     withTimeout(15.seconds) {
                         cleanup()

@@ -1,6 +1,8 @@
 package com.github.arthurkun.koo.imaging
 
 import com.github.arthurkun.koo.DetectedResults
+import com.github.arthurkun.koo.OCRException
+import com.github.arthurkun.koo.OCRReason
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import logcat.LogPriority
@@ -9,16 +11,21 @@ import logcat.logcat
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.javacpp.indexer.FloatIndexer
 import org.bytedeco.javacpp.indexer.UByteIndexer
+import org.bytedeco.opencv.global.opencv_core.BORDER_REPLICATE
 import org.bytedeco.opencv.global.opencv_core.CV_32F
 import org.bytedeco.opencv.global.opencv_core.CV_32FC2
 import org.bytedeco.opencv.global.opencv_core.CV_32FC3
 import org.bytedeco.opencv.global.opencv_core.CV_8U
 import org.bytedeco.opencv.global.opencv_core.CV_8UC1
+import org.bytedeco.opencv.global.opencv_core.ROTATE_90_COUNTERCLOCKWISE
+import org.bytedeco.opencv.global.opencv_core.rotate
 import org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_COLOR
 import org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE
 import org.bytedeco.opencv.global.opencv_imgcodecs.imdecode
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB
+import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGRA2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_GRAY2RGB
+import org.bytedeco.opencv.global.opencv_imgproc.INTER_CUBIC
 import org.bytedeco.opencv.global.opencv_imgproc.cvtColor
 import org.bytedeco.opencv.global.opencv_imgproc.getPerspectiveTransform
 import org.bytedeco.opencv.global.opencv_imgproc.warpPerspective
@@ -64,12 +71,26 @@ internal actual class NativeMat(
     }
 
     actual override fun toRgbCvImage(): NativeMat {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot convert an empty image to RGB: $tag"),
+            )
+        }
+
         val rgbMat = Mat()
         return try {
-            if (mat.type() == CV_8UC1) {
-                cvtColor(mat, rgbMat, COLOR_GRAY2RGB)
-            } else {
-                cvtColor(mat, rgbMat, COLOR_BGR2RGB)
+            when (mat.channels()) {
+                1 -> cvtColor(mat, rgbMat, COLOR_GRAY2RGB)
+
+                3 -> cvtColor(mat, rgbMat, COLOR_BGR2RGB)
+
+                4 -> cvtColor(mat, rgbMat, COLOR_BGRA2RGB)
+
+                else -> throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalArgumentException("Unsupported channel count ${mat.channels()} for image: $tag"),
+                )
             }
             NativeMat(rgbMat, "$tag[rgb]")
         } catch (e: Exception) {
@@ -77,11 +98,28 @@ internal actual class NativeMat(
                 "Failed to convert mat to RGB: $tag ${e.asLog()}"
             }
             rgbMat.close()
-            NativeMat()
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
+            }
         }
     }
 
-    actual override fun getPixel(y: Int, x: Int): DoubleArray? {
+    actual override fun getPixel(y: Int, x: Int): DoubleArray {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot read pixels from an empty image: $tag"),
+            )
+        }
+        if (y !in 0 until height || x !in 0 until width) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IndexOutOfBoundsException("Pixel ($x, $y) is outside image bounds ${width}x$height: $tag"),
+            )
+        }
+
         return try {
             val channels = mat.channels()
             val result = DoubleArray(channels)
@@ -102,11 +140,18 @@ internal actual class NativeMat(
                     }
                 }
 
-                else -> return null
+                else -> throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("Unsupported mat depth ${mat.depth()} for image: $tag"),
+                )
             }
             result
         } catch (e: Exception) {
-            null
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
+            }
         }
     }
 
@@ -117,6 +162,13 @@ internal actual class NativeMat(
     }
 
     actual override fun resizeTo(targetHeight: Int, targetWidth: Int): NativeMat {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot resize an empty image: $tag"),
+            )
+        }
+
         val result = Mat()
         try {
             cvResize(
@@ -124,9 +176,22 @@ internal actual class NativeMat(
                 result,
                 CvSize(targetWidth, targetHeight),
             )
+            if (result.empty()) {
+                throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("Resize produced an empty image: $tag"),
+                )
+            }
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, TAG) {
                 "Failed to resize mat: $tag ${e.asLog()}"
+            }
+            result.release()
+            result.close()
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
             }
         }
         return NativeMat(result, "$tag[resized]")
@@ -150,9 +215,11 @@ internal actual class NativeMat(
                 val decoded = imdecode(buf, if (isColor) IMREAD_COLOR else IMREAD_GRAYSCALE)
                 buf.close()
                 if (decoded.empty()) {
-                    logcat(LogPriority.WARN, TAG) {
-                        "Decoded image is empty for tag: $tag"
-                    }
+                    decoded.close()
+                    throw OCRException(
+                        OCRReason.LoadingError,
+                        cause = IllegalArgumentException("Decoded image is empty for tag: $tag"),
+                    )
                 }
                 NativeMat(decoded, tag)
             } finally {
@@ -211,7 +278,25 @@ internal fun NativeMat.cropPerspective(box: DetectedResults): NativeMat {
 
     val transform = getPerspectiveTransform(srcPts, dstPts)
     val result = Mat()
-    warpPerspective(mat, result, transform, CvSize(dstW, dstH))
+    warpPerspective(
+        mat,
+        result,
+        transform,
+        CvSize(dstW, dstH),
+        INTER_CUBIC,
+        BORDER_REPLICATE,
+        org.bytedeco.opencv.opencv_core.Scalar(),
+    )
+
+    if (!result.empty() && result.cols() > 0 && result.rows().toDouble() / result.cols().toDouble() >= 1.5) {
+        val rotated = Mat()
+        rotate(result, rotated, ROTATE_90_COUNTERCLOCKWISE)
+        result.close()
+        srcPts.close()
+        dstPts.close()
+        transform.close()
+        return NativeMat(rotated, "$tag[crop]")
+    }
 
     srcPts.close()
     dstPts.close()

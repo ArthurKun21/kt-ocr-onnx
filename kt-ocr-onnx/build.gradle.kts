@@ -3,11 +3,15 @@ plugins {
     id("koo.library.kmp.tests")
     id("koo.compose")
     alias(libs.plugins.vanniktech.maven.publish)
-    alias(libs.plugins.binary.compatibility.validator)
 }
 
 kotlin {
     explicitApi()
+
+    @OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
+    abiValidation {
+        enabled.set(true)
+    }
 
     android {
         namespace = "com.github.arthurkun.koo"
@@ -22,12 +26,15 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.resources)
+            api(libs.kotlinx.io.core)
         }
 
         val jvmCommonMain by creating {
             dependsOn(commonMain.get())
             dependencies {
-                implementation(libs.onnxruntime.jvm)
+                // Shared sources require ORT symbols, but the concrete runtime must be
+                // target-specific to avoid packaging both JVM and Android artifacts.
+                compileOnly(libs.onnxruntime.jvm)
                 implementation(libs.clipper2.java)
             }
         }
@@ -43,6 +50,7 @@ kotlin {
         jvmMain {
             dependsOn(jvmCommonMain)
             dependencies {
+                implementation(libs.onnxruntime.jvm)
                 implementation(libs.opencv.jvm)
             }
         }

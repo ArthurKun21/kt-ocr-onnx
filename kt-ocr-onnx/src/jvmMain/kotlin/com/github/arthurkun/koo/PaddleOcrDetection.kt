@@ -15,6 +15,8 @@ import org.bytedeco.opencv.opencv_core.MatVector
 import org.bytedeco.opencv.opencv_core.Point2f
 import org.bytedeco.opencv.opencv_core.Rect
 import org.bytedeco.opencv.opencv_core.Scalar
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -64,71 +66,76 @@ internal class PaddleOcrDetection(
 
         for (i in 0 until numContours) {
             val contour = contours.get(i.toLong())
+            try {
+                // Get minimum area rotated rectangle
+                val contour2f = Mat()
+                contour.convertTo(contour2f, opencv_core.CV_32F)
+                val rotatedRect = opencv_imgproc.minAreaRect(contour2f)
+                contour2f.close()
 
-            // Get minimum area rotated rectangle
-            val contour2f = Mat()
-            contour.convertTo(contour2f, opencv_core.CV_32F)
-            val rotatedRect = opencv_imgproc.minAreaRect(contour2f)
-            contour2f.close()
+                val sside = min(rotatedRect.size().width(), rotatedRect.size().height())
+                if (sside < DET_MIN_SIZE) continue
 
-            val sside = min(rotatedRect.size().width(), rotatedRect.size().height())
-            if (sside < DET_MIN_SIZE) continue
+                // Get 4 corner points
+                val pointsMat = Point2f(4)
+                rotatedRect.points(pointsMat)
+                val rectPoints = (0 until 4).map {
+                    doubleArrayOf(
+                        pointsMat.position(it.toLong()).x().toDouble(),
+                        pointsMat.position(it.toLong()).y().toDouble(),
+                    )
+                }
+                pointsMat.close()
 
-            // Get 4 corner points
-            val pointsMat = Point2f(4)
-            rotatedRect.points(pointsMat)
-            val rectPoints = (0 until 4).map {
-                doubleArrayOf(
-                    pointsMat.position(it.toLong()).x().toDouble(),
-                    pointsMat.position(it.toLong()).y().toDouble(),
-                )
+                // Sort points clockwise: top-left, top-right, bottom-right, bottom-left
+                val sortedPoints = getMiniBoxPoints(rectPoints)
+
+                // Compute score (box_score_fast)
+                val score = boxScoreFast(probMat, sortedPoints, mapH, mapW)
+                if (score < DET_BOX_THRESH) continue
+
+                // Unclip (expand) the polygon
+                val expanded = unclipPolygon(sortedPoints)
+                if (expanded.isEmpty()) continue
+
+                // Re-fit minimum area rect on expanded polygon
+                val expandedMat = Mat(expanded.size, 1, opencv_core.CV_32FC2)
+                val expandedIndexer = expandedMat.createIndexer<FloatIndexer>()
+                for (j in expanded.indices) {
+                    expandedIndexer.put(j.toLong(), 0L, 0L, expanded[j][0].toFloat())
+                    expandedIndexer.put(j.toLong(), 0L, 1L, expanded[j][1].toFloat())
+                }
+                expandedIndexer.close()
+
+                val expandedRect = opencv_imgproc.minAreaRect(expandedMat)
+                expandedMat.close()
+
+                val expandedSside = min(expandedRect.size().width(), expandedRect.size().height())
+                if (expandedSside < DET_MIN_SIZE + 2) continue
+
+                val expandedPointsMat = Point2f(4)
+                expandedRect.points(expandedPointsMat)
+                val expandedRectPoints = (0 until 4).map {
+                    doubleArrayOf(
+                        expandedPointsMat.position(it.toLong()).x().toDouble(),
+                        expandedPointsMat.position(it.toLong()).y().toDouble(),
+                    )
+                }
+                expandedPointsMat.close()
+                val finalPoints = getMiniBoxPoints(expandedRectPoints)
+
+                // Scale back to original image coordinates
+                val scaledPoints = finalPoints.map { pt ->
+                    BoxPoint(
+                        (pt[0] / mapW * srcW).roundToInt().coerceIn(0, srcW),
+                        (pt[1] / mapH * srcH).roundToInt().coerceIn(0, srcH),
+                    )
+                }
+
+                boxes.add(DetectedResults(scaledPoints, score))
+            } finally {
+                contour.close()
             }
-
-            // Sort points clockwise: top-left, top-right, bottom-right, bottom-left
-            val sortedPoints = getMiniBoxPoints(rectPoints)
-
-            // Compute score (box_score_fast)
-            val score = boxScoreFast(probMat, sortedPoints, mapH, mapW)
-            if (score < DET_BOX_THRESH) continue
-
-            // Unclip (expand) the polygon
-            val expanded = unclipPolygon(sortedPoints)
-            if (expanded.isEmpty()) continue
-
-            // Re-fit minimum area rect on expanded polygon
-            val expandedMat = Mat(expanded.size, 1, opencv_core.CV_32FC2)
-            val expandedIndexer = expandedMat.createIndexer<FloatIndexer>()
-            for (j in expanded.indices) {
-                expandedIndexer.put(j.toLong(), 0L, 0L, expanded[j][0].toFloat())
-                expandedIndexer.put(j.toLong(), 0L, 1L, expanded[j][1].toFloat())
-            }
-            expandedIndexer.close()
-
-            val expandedRect = opencv_imgproc.minAreaRect(expandedMat)
-            expandedMat.close()
-
-            val expandedSside = min(expandedRect.size().width(), expandedRect.size().height())
-            if (expandedSside < DET_MIN_SIZE + 2) continue
-
-            val expandedPointsMat = Point2f(4)
-            expandedRect.points(expandedPointsMat)
-            val expandedRectPoints = (0 until 4).map {
-                doubleArrayOf(
-                    expandedPointsMat.position(it.toLong()).x().toDouble(),
-                    expandedPointsMat.position(it.toLong()).y().toDouble(),
-                )
-            }
-            val finalPoints = getMiniBoxPoints(expandedRectPoints)
-
-            // Scale back to original image coordinates
-            val scaledPoints = finalPoints.map { pt ->
-                BoxPoint(
-                    (pt[0] / mapW * srcW).roundToInt().coerceIn(0, srcW),
-                    (pt[1] / mapH * srcH).roundToInt().coerceIn(0, srcH),
-                )
-            }
-
-            boxes.add(DetectedResults(scaledPoints, score))
         }
 
         // Cleanup
@@ -153,10 +160,10 @@ internal class PaddleOcrDetection(
         val xCoords = points.map { it[0] }
         val yCoords = points.map { it[1] }
 
-        val xmin = xCoords.min().toInt().coerceIn(0, mapW - 1)
-        val xmax = xCoords.max().toInt().coerceIn(0, mapW - 1)
-        val ymin = yCoords.min().toInt().coerceIn(0, mapH - 1)
-        val ymax = yCoords.max().toInt().coerceIn(0, mapH - 1)
+        val xmin = floor(xCoords.min()).toInt().coerceIn(0, mapW - 1)
+        val xmax = ceil(xCoords.max()).toInt().coerceIn(0, mapW - 1)
+        val ymin = floor(yCoords.min()).toInt().coerceIn(0, mapH - 1)
+        val ymax = ceil(yCoords.max()).toInt().coerceIn(0, mapH - 1)
 
         if (xmin >= xmax || ymin >= ymax) return 0f
 
@@ -169,13 +176,14 @@ internal class PaddleOcrDetection(
         val shiftedPointsMat = Mat(points.size, 1, opencv_core.CV_32SC2)
         val shiftedIndexer = shiftedPointsMat.createIndexer<IntIndexer>()
         for (j in points.indices) {
-            shiftedIndexer.put(j.toLong(), 0L, 0L, (points[j][0] - xmin).toInt())
-            shiftedIndexer.put(j.toLong(), 0L, 1L, (points[j][1] - ymin).toInt())
+            shiftedIndexer.put(j.toLong(), 0L, 0L, (points[j][0] - xmin).roundToInt().coerceIn(0, roiW - 1))
+            shiftedIndexer.put(j.toLong(), 0L, 1L, (points[j][1] - ymin).roundToInt().coerceIn(0, roiH - 1))
         }
         shiftedIndexer.close()
 
         val contourVec = MatVector(shiftedPointsMat)
         opencv_imgproc.fillPoly(mask, contourVec, Scalar(255.0))
+        contourVec.close()
         shiftedPointsMat.close()
 
         // Extract ROI from probability map and compute mean with mask
@@ -184,6 +192,7 @@ internal class PaddleOcrDetection(
         )
         val meanVal = opencv_core.mean(roi, mask)
 
+        roi.close()
         mask.close()
 
         return meanVal.get(0).toFloat()

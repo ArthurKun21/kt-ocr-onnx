@@ -2,12 +2,15 @@ package com.github.arthurkun.koo.imaging
 
 import android.graphics.Bitmap
 import com.github.arthurkun.koo.DetectedResults
+import com.github.arthurkun.koo.OCRException
+import com.github.arthurkun.koo.OCRReason
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import logcat.LogPriority
 import logcat.asLog
 import logcat.logcat
 import org.opencv.android.Utils
+import org.opencv.core.Core
 import org.opencv.core.CvException
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -55,12 +58,26 @@ internal actual class NativeMat(
     }
 
     actual override fun toRgbCvImage(): NativeMat {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot convert an empty image to RGB: $tag"),
+            )
+        }
+
         val rgbMat = Mat()
         return try {
-            if (mat.type() == CvType.CV_8UC1) {
-                Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_GRAY2RGB)
-            } else {
-                Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_BGR2RGB)
+            when (mat.channels()) {
+                1 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_GRAY2RGB)
+
+                3 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_BGR2RGB)
+
+                4 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_BGRA2RGB)
+
+                else -> throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalArgumentException("Unsupported channel count ${mat.channels()} for image: $tag"),
+                )
             }
             NativeMat(rgbMat, "$tag[rgb]")
         } catch (e: CvException) {
@@ -68,21 +85,46 @@ internal actual class NativeMat(
                 "Failed to convert mat to RGB: $tag ${e.asLog()}"
             }
             rgbMat.release()
-            NativeMat()
+            throw OCRException(OCRReason.LoadingError, cause = e)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, TAG) {
                 "Unexpected error converting mat to RGB: $tag ${e.asLog()}"
             }
             rgbMat.release()
-            NativeMat()
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
+            }
         }
     }
 
-    actual override fun getPixel(y: Int, x: Int): DoubleArray? {
+    actual override fun getPixel(y: Int, x: Int): DoubleArray {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot read pixels from an empty image: $tag"),
+            )
+        }
+        if (y !in 0 until height || x !in 0 until width) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IndexOutOfBoundsException("Pixel ($x, $y) is outside image bounds ${width}x$height: $tag"),
+            )
+        }
+
         return try {
             mat.get(y, x)
+                ?: throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("OpenCV returned no data for pixel ($x, $y): $tag"),
+                )
         } catch (e: Exception) {
-            null
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
+            }
         }
     }
 
@@ -93,6 +135,13 @@ internal actual class NativeMat(
     }
 
     actual override fun resizeTo(targetHeight: Int, targetWidth: Int): NativeMat {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot resize an empty image: $tag"),
+            )
+        }
+
         val result = Mat()
         try {
             Imgproc.resize(
@@ -100,9 +149,24 @@ internal actual class NativeMat(
                 result,
                 Size(targetWidth.toDouble(), targetHeight.toDouble()),
             )
+            if (result.empty()) {
+                throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("Resize produced an empty image: $tag"),
+                )
+            }
         } catch (e: CvException) {
             logcat(LogPriority.ERROR, TAG) {
                 "Failed to resize mat: $tag ${e.asLog()}"
+            }
+            result.release()
+            throw OCRException(OCRReason.LoadingError, cause = e)
+        } catch (e: Exception) {
+            result.release()
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
             }
         }
         return NativeMat(result, "$tag[resized]")
@@ -129,9 +193,11 @@ internal actual class NativeMat(
                 }
             }
             if (mat.empty()) {
-                logcat(LogPriority.WARN, TAG) {
-                    "Decoded image is empty for tag: $tag"
-                }
+                mat.release()
+                throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalArgumentException("Decoded image is empty for tag: $tag"),
+                )
             }
             return NativeMat(mat, tag)
         }
@@ -182,7 +248,24 @@ internal fun NativeMat.cropPerspective(box: DetectedResults): NativeMat {
 
     val transform = Imgproc.getPerspectiveTransform(srcPts, dstPts)
     val result = Mat()
-    Imgproc.warpPerspective(mat, result, transform, Size(dstW.toDouble(), dstH.toDouble()))
+    Imgproc.warpPerspective(
+        mat,
+        result,
+        transform,
+        Size(dstW.toDouble(), dstH.toDouble()),
+        Imgproc.INTER_CUBIC,
+        Core.BORDER_REPLICATE,
+    )
+
+    if (!result.empty() && result.cols() > 0 && result.rows().toDouble() / result.cols().toDouble() >= 1.5) {
+        val rotated = Mat()
+        Core.rotate(result, rotated, Core.ROTATE_90_COUNTERCLOCKWISE)
+        result.release()
+        srcPts.release()
+        dstPts.release()
+        transform.release()
+        return NativeMat(rotated, "$tag[crop]")
+    }
 
     srcPts.release()
     dstPts.release()

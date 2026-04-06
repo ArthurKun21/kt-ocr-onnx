@@ -36,7 +36,7 @@ internal const val DET_LIMIT_SIDE_LEN = 736
 internal const val DET_ROUND_TO = 32
 
 /**
- * ImageNet normalization parameters applied in BGR channel order.
+ * ImageNet normalization parameters applied in RGB channel order.
  *
  * Reference: PP-OCRv5_mobile_det.yml NormalizeImage transform
  */

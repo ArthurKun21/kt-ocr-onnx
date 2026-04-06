@@ -9,6 +9,8 @@ import org.opencv.core.MatOfPoint2f
 import org.opencv.core.Point
 import org.opencv.core.Scalar
 import org.opencv.imgproc.Imgproc
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -135,10 +137,10 @@ internal class PaddleOcrDetection(
         val xCoords = points.map { it[0] }
         val yCoords = points.map { it[1] }
 
-        val xmin = xCoords.min().toInt().coerceIn(0, mapW - 1)
-        val xmax = xCoords.max().toInt().coerceIn(0, mapW - 1)
-        val ymin = yCoords.min().toInt().coerceIn(0, mapH - 1)
-        val ymax = yCoords.max().toInt().coerceIn(0, mapH - 1)
+        val xmin = floor(xCoords.min()).toInt().coerceIn(0, mapW - 1)
+        val xmax = ceil(xCoords.max()).toInt().coerceIn(0, mapW - 1)
+        val ymin = floor(yCoords.min()).toInt().coerceIn(0, mapH - 1)
+        val ymax = ceil(yCoords.max()).toInt().coerceIn(0, mapH - 1)
 
         if (xmin >= xmax || ymin >= ymax) return 0f
 
@@ -149,7 +151,10 @@ internal class PaddleOcrDetection(
 
         // Shift points to ROI coordinates
         val shiftedPoints = points.map {
-            Point(it[0] - xmin, it[1] - ymin)
+            Point(
+                (it[0] - xmin).roundToInt().coerceIn(0, roiW - 1).toDouble(),
+                (it[1] - ymin).roundToInt().coerceIn(0, roiH - 1).toDouble(),
+            )
         }
         val contour = MatOfPoint(
             *shiftedPoints.map {
@@ -157,15 +162,15 @@ internal class PaddleOcrDetection(
             }.toTypedArray(),
         )
 
-        Imgproc.fillConvexPoly(mask, contour, Scalar(255.0))
+        Imgproc.fillPoly(mask, listOf(contour), Scalar(255.0))
         contour.release()
 
         // Extract ROI from probability map and compute mean with mask
         val roi = probMat.submat(ymin, ymax + 1, xmin, xmax + 1)
         val meanVal = Core.mean(roi, mask)
 
+        roi.release()
         mask.release()
-        // Note: roi is a submat view, do not release it separately
 
         return meanVal.`val`[0].toFloat()
     }

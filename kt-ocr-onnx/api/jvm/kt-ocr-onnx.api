@@ -26,6 +26,24 @@ public final class com/github/arthurkun/koo/DetectedResults {
 	public fun toString ()Ljava/lang/String;
 }
 
+public abstract interface class com/github/arthurkun/koo/JvmOcrApi : com/github/arthurkun/koo/OcrApi {
+	public abstract fun detectAndRecognizeText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun detectText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun recognizeText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/github/arthurkun/koo/JvmOcrApi$DefaultImpls {
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/JvmOcrApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/github/arthurkun/koo/OCRException : java/lang/Exception {
 	public static final field $stable I
 	public fun <init> (Lcom/github/arthurkun/koo/OCRReason;Ljava/lang/Throwable;)V
@@ -56,9 +74,30 @@ public final class com/github/arthurkun/koo/OCRReason$LoadingError : com/github/
 }
 
 public abstract interface class com/github/arthurkun/koo/OcrApi : java/lang/AutoCloseable {
-	public abstract fun detectAndRecognizeText (Lcom/github/arthurkun/koo/imaging/CvImage;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun detectText (Lcom/github/arthurkun/koo/imaging/CvImage;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun recognizeText (Lcom/github/arthurkun/koo/imaging/CvImage;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun detectAndRecognizeText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun detectText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun recognizeText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/github/arthurkun/koo/OcrApi$DefaultImpls {
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/github/arthurkun/koo/OcrResult {
@@ -77,6 +116,29 @@ public final class com/github/arthurkun/koo/OcrResult {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class com/github/arthurkun/koo/PaddleOcrService : com/github/arthurkun/koo/JvmOcrApi {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/Object;)V
+	public synthetic fun <init> (Ljava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun close ()V
+	public fun detectAndRecognizeText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class com/github/arthurkun/koo/RecognitionResult {
 	public static final field $stable I
 	public fun <init> (Ljava/lang/String;F)V
@@ -89,22 +151,5 @@ public final class com/github/arthurkun/koo/RecognitionResult {
 	public final fun getText ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
-}
-
-public abstract interface class com/github/arthurkun/koo/imaging/CvImage : java/lang/AutoCloseable {
-	public static final field Companion Lcom/github/arthurkun/koo/imaging/CvImage$Companion;
-	public abstract fun convertToFloat ()Lcom/github/arthurkun/koo/imaging/CvImage;
-	public abstract fun getHeight ()I
-	public abstract fun getPixel (II)[D
-	public abstract fun getTag ()Ljava/lang/String;
-	public abstract fun getWidth ()I
-	public abstract fun isEmpty ()Z
-	public abstract fun resizeTo (II)Lcom/github/arthurkun/koo/imaging/CvImage;
-	public abstract fun toRgbCvImage ()Lcom/github/arthurkun/koo/imaging/CvImage;
-}
-
-public final class com/github/arthurkun/koo/imaging/CvImage$Companion {
-	public final fun fromByteArray ([BZLjava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun fromByteArray$default (Lcom/github/arthurkun/koo/imaging/CvImage$Companion;[BZLjava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 

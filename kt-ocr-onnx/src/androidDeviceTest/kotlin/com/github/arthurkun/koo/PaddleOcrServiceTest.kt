@@ -12,9 +12,6 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotNull
 import com.github.arthurkun.koo.imaging.initOpenCV
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -48,8 +45,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
 
     @Before
     override fun setUp() {
-        testScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-        paddleOcrService = PaddleOcrService(testScope)
+        paddleOcrService = PaddleOcrService(platformContext = context)
     }
 
     @After
@@ -60,7 +56,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     @Test
     fun testDetectAndRecognizeTextFromTestImageBitmap() = runTest {
         val bitmap = loadImageBitmap("ocr/noble-phantasm-en.png")
-        val results = (paddleOcrService as PaddleOcrService).detectAndRecognizeText(bitmap)
+        val results = (paddleOcrService as AndroidOcrApi).detectAndRecognizeText(bitmap)
         assertThat(results).isNotEmpty()
         val combinedText = results.joinToString(" ") { it.text }
         val normalized = combinedText.replace(Regex("\\s+"), " ").trim()

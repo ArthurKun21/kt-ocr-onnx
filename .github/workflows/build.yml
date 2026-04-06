@@ -52,7 +52,7 @@ jobs:
 
       - name: Check API compatibility
         run: |
-          ./gradlew :kt-ocr-onnx:apiCheck
+          ./gradlew :kt-ocr-onnx:checkKotlinAbi
 
   Build-Android:
     runs-on: macos-latest
