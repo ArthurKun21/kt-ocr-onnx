@@ -73,7 +73,11 @@ internal abstract class PaddleOcrDetectionBase(
             }
 
             initFailureRef.load()?.let { failure ->
-                throw OCRException(OCRReason.InitializationError, cause = failure)
+                throw if (failure is OCRException) {
+                    failure
+                } else {
+                    OCRInitializationException("Detection model initialization failed", cause = failure)
+                }
             }
 
             logcat(TAG) { "Initializing PaddleOCR detection model..." }
@@ -102,21 +106,22 @@ internal abstract class PaddleOcrDetectionBase(
                 initFailureRef.store(t)
                 logcat(LogPriority.ERROR, TAG) { "Failed to initialize detection: ${t.asLog()}" }
                 cleanup()
-                throw OCRException(OCRReason.InitializationError, cause = t)
+                throw OCRInitializationException("Failed to initialize detection model", cause = t)
             }
         }
     }
 
     private suspend fun ensureInitialized() {
         if (isClosed.load()) {
-            throw OCRException(
-                OCRReason.LoadingError,
-                cause = IllegalStateException("Detection model is already closed"),
-            )
+            throw OCRClosedException("Detection model is already closed")
         }
 
         initFailureRef.load()?.let { failure ->
-            throw OCRException(OCRReason.InitializationError, cause = failure)
+            throw if (failure is OCRException) {
+                failure
+            } else {
+                OCRInitializationException("Detection model initialization failed", cause = failure)
+            }
         }
 
         if (!isInitialized.load()) {
@@ -124,9 +129,8 @@ internal abstract class PaddleOcrDetectionBase(
         }
 
         if (!isInitialized.load()) {
-            throw OCRException(
-                OCRReason.InitializationError,
-                cause = IllegalStateException("Detection model initialization failed"),
+            throw OCRInitializationException(
+                "Detection model initialization failed",
             )
         }
     }
@@ -153,7 +157,7 @@ internal abstract class PaddleOcrDetectionBase(
                     throw if (t is OCRException) {
                         t
                     } else {
-                        OCRException(OCRReason.LoadingError, cause = t)
+                        OCRInferenceException("Error during detection", cause = t)
                     }
                 }
             }
@@ -162,9 +166,13 @@ internal abstract class PaddleOcrDetectionBase(
 
     private fun runDetection(inputImage: CvImage): List<DetectedResults> {
         val session = ortSessionRef.load()
-            ?: throw OCRException(OCRReason.LoadingError, IllegalStateException("Session not initialized"))
+            ?: throw OCRModelStateException(
+                "Detection session not initialized",
+            )
         val env = ortEnvRef.load()
-            ?: throw OCRException(OCRReason.LoadingError, IllegalStateException("Environment not initialized"))
+            ?: throw OCRModelStateException(
+                "Detection environment not initialized",
+            )
 
         val srcH = inputImage.height
         val srcW = inputImage.width
@@ -181,26 +189,22 @@ internal abstract class PaddleOcrDetectionBase(
 
         val probMap = try {
             val rawOutput = output.get(0).value as? Array<*>
-                ?: throw OCRException(
-                    OCRReason.LoadingError,
-                    cause = IllegalStateException("Unexpected detection output type"),
+                ?: throw OCRModelOutputException(
+                    "Unexpected detection output type",
                 )
             val batch = rawOutput.firstOrNull() as? Array<*>
-                ?: throw OCRException(
-                    OCRReason.LoadingError,
-                    cause = IllegalStateException("Detection output missing batch dimension"),
+                ?: throw OCRModelOutputException(
+                    "Detection output missing batch dimension",
                 )
             val channel = batch.firstOrNull() as? Array<*>
-                ?: throw OCRException(
-                    OCRReason.LoadingError,
-                    cause = IllegalStateException("Detection output missing channel dimension"),
+                ?: throw OCRModelOutputException(
+                    "Detection output missing channel dimension",
                 )
 
             Array(channel.size) { rowIndex ->
                 channel[rowIndex] as? FloatArray
-                    ?: throw OCRException(
-                        OCRReason.LoadingError,
-                        cause = IllegalStateException("Detection output row is not FloatArray at index $rowIndex"),
+                    ?: throw OCRModelOutputException(
+                        "Detection output row is not FloatArray at index $rowIndex",
                     )
             }
         } finally {

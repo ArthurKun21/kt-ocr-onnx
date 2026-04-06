@@ -54,7 +54,7 @@ abstract class PaddleOcrServiceTestBase {
     fun testDetectAndRecognizeTextInvalidBytesThrows() = runTest {
         val invalidBytes = byteArrayOf(0x00, 0x11, 0x22, 0x33)
 
-        assertFailsWith<OCRException> {
+        assertFailsWith<OCRImageDecodeException> {
             paddleOcrService.detectAndRecognizeText(invalidBytes)
         }
     }

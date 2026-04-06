@@ -3,7 +3,8 @@ package com.github.arthurkun.koo.imaging
 import android.graphics.Bitmap
 import com.github.arthurkun.koo.DetectedResults
 import com.github.arthurkun.koo.OCRException
-import com.github.arthurkun.koo.OCRReason
+import com.github.arthurkun.koo.OCRImageDecodeException
+import com.github.arthurkun.koo.OCRImageProcessingException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import logcat.LogPriority
@@ -59,9 +60,8 @@ internal actual class NativeMat(
 
     actual override fun toRgbCvImage(): NativeMat {
         if (mat.empty()) {
-            throw OCRException(
-                OCRReason.LoadingError,
-                cause = IllegalArgumentException("Cannot convert an empty image to RGB: $tag"),
+            throw OCRImageProcessingException(
+                "Cannot convert an empty image to RGB: $tag",
             )
         }
 
@@ -74,9 +74,8 @@ internal actual class NativeMat(
 
                 4 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_BGRA2RGB)
 
-                else -> throw OCRException(
-                    OCRReason.LoadingError,
-                    cause = IllegalArgumentException("Unsupported channel count ${mat.channels()} for image: $tag"),
+                else -> throw OCRImageProcessingException(
+                    "Unsupported channel count ${mat.channels()} for image: $tag",
                 )
             }
             NativeMat(rgbMat, "$tag[rgb]")
@@ -85,7 +84,7 @@ internal actual class NativeMat(
                 "Failed to convert mat to RGB: $tag ${e.asLog()}"
             }
             rgbMat.release()
-            throw OCRException(OCRReason.LoadingError, cause = e)
+            throw OCRImageProcessingException("Failed to convert image to RGB: $tag", cause = e)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, TAG) {
                 "Unexpected error converting mat to RGB: $tag ${e.asLog()}"
@@ -94,36 +93,33 @@ internal actual class NativeMat(
             throw if (e is OCRException) {
                 e
             } else {
-                OCRException(OCRReason.LoadingError, cause = e)
+                OCRImageProcessingException("Failed to convert image to RGB: $tag", cause = e)
             }
         }
     }
 
     actual override fun getPixel(y: Int, x: Int): DoubleArray {
         if (mat.empty()) {
-            throw OCRException(
-                OCRReason.LoadingError,
-                cause = IllegalArgumentException("Cannot read pixels from an empty image: $tag"),
+            throw OCRImageProcessingException(
+                "Cannot read pixels from an empty image: $tag",
             )
         }
         if (y !in 0 until height || x !in 0 until width) {
-            throw OCRException(
-                OCRReason.LoadingError,
-                cause = IndexOutOfBoundsException("Pixel ($x, $y) is outside image bounds ${width}x$height: $tag"),
+            throw OCRImageProcessingException(
+                "Pixel ($x, $y) is outside image bounds ${width}x$height: $tag",
             )
         }
 
         return try {
             mat.get(y, x)
-                ?: throw OCRException(
-                    OCRReason.LoadingError,
-                    cause = IllegalStateException("OpenCV returned no data for pixel ($x, $y): $tag"),
+                ?: throw OCRImageProcessingException(
+                    "OpenCV returned no data for pixel ($x, $y): $tag",
                 )
         } catch (e: Exception) {
             throw if (e is OCRException) {
                 e
             } else {
-                OCRException(OCRReason.LoadingError, cause = e)
+                OCRImageProcessingException("Failed to read pixel data: $tag", cause = e)
             }
         }
     }
@@ -136,9 +132,8 @@ internal actual class NativeMat(
 
     actual override fun resizeTo(targetHeight: Int, targetWidth: Int): NativeMat {
         if (mat.empty()) {
-            throw OCRException(
-                OCRReason.LoadingError,
-                cause = IllegalArgumentException("Cannot resize an empty image: $tag"),
+            throw OCRImageProcessingException(
+                "Cannot resize an empty image: $tag",
             )
         }
 
@@ -150,9 +145,8 @@ internal actual class NativeMat(
                 Size(targetWidth.toDouble(), targetHeight.toDouble()),
             )
             if (result.empty()) {
-                throw OCRException(
-                    OCRReason.LoadingError,
-                    cause = IllegalStateException("Resize produced an empty image: $tag"),
+                throw OCRImageProcessingException(
+                    "Resize produced an empty image: $tag",
                 )
             }
         } catch (e: CvException) {
@@ -160,13 +154,13 @@ internal actual class NativeMat(
                 "Failed to resize mat: $tag ${e.asLog()}"
             }
             result.release()
-            throw OCRException(OCRReason.LoadingError, cause = e)
+            throw OCRImageProcessingException("Failed to resize image: $tag", cause = e)
         } catch (e: Exception) {
             result.release()
             throw if (e is OCRException) {
                 e
             } else {
-                OCRException(OCRReason.LoadingError, cause = e)
+                OCRImageProcessingException("Failed to resize image: $tag", cause = e)
             }
         }
         return NativeMat(result, "$tag[resized]")
@@ -194,9 +188,8 @@ internal actual class NativeMat(
             }
             if (mat.empty()) {
                 mat.release()
-                throw OCRException(
-                    OCRReason.LoadingError,
-                    cause = IllegalArgumentException("Decoded image is empty for tag: $tag"),
+                throw OCRImageDecodeException(
+                    "Decoded image is empty for tag: $tag",
                 )
             }
             return NativeMat(mat, tag)

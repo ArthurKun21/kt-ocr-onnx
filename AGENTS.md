@@ -20,7 +20,7 @@
   - `JvmOcrApi` — JVM-specific interface extending `OcrApi` with bytedeco `Mat` overloads.
   - `AndroidOcrApi` — Android-specific interface extending `OcrApi` with `Bitmap`, `Uri`, and OpenCV `Mat` overloads.
   - Data classes: `DetectedResults` (bounding quadrilateral + score), `RecognitionResult` (text + score), `OcrResult` (box + text + score), `BoxPoint` (x, y).
-  - `OCRException` / `OCRReason` — error types for initialization and loading failures.
+  - `OCRException` hierarchy — `OCRInitializationException`, `OCRClosedException`, `OCRIOException`, `OCRImageDecodeException`, `OCRImageProcessingException`, `OCRInferenceException`, `OCRModelStateException`, and `OCRModelOutputException`.
   - `CvImage` and `NativeMat` are **internal** — not part of the public API.
 - Internal implementation: `PaddleOcrDetectionBase` (abstract, in `jvmCommonMain`) with platform-specific `PaddleOcrDetection` subclasses; `PaddleOcrRecognition` (in `jvmCommonMain`); `NativeMat` (`expect`/`actual`) wraps OpenCV Mat.
 - Key deps: ONNX Runtime (android/jvm), OpenCV (`org.opencv:opencv` on Android, `org.bytedeco:opencv-platform` on JVM), Compose Resources for model files, kotlinx-coroutines, Clipper2-java for polygon operations.
