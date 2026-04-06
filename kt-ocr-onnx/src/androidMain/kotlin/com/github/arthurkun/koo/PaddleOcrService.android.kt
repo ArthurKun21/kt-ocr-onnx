@@ -152,7 +152,6 @@ public actual class PaddleOcrService actual constructor(
         return context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             ?: throw OCRIOException(
                 "Failed to open input stream for URI: $uri",
-                IllegalStateException("Failed to open input stream for URI: $uri"),
             )
     }
 
