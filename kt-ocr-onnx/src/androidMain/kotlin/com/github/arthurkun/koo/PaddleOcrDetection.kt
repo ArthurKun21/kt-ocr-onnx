@@ -164,8 +164,8 @@ internal class PaddleOcrDetection(
         val roi = probMat.submat(ymin, ymax + 1, xmin, xmax + 1)
         val meanVal = Core.mean(roi, mask)
 
+        roi.release()
         mask.release()
-        // Note: roi is a submat view, do not release it separately
 
         return meanVal.`val`[0].toFloat()
     }

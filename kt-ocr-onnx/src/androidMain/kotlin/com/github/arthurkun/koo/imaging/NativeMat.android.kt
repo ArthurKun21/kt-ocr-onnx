@@ -2,6 +2,8 @@ package com.github.arthurkun.koo.imaging
 
 import android.graphics.Bitmap
 import com.github.arthurkun.koo.DetectedResults
+import com.github.arthurkun.koo.OCRException
+import com.github.arthurkun.koo.OCRReason
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import logcat.LogPriority
@@ -55,12 +57,23 @@ internal actual class NativeMat(
     }
 
     actual override fun toRgbCvImage(): NativeMat {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot convert an empty image to RGB: $tag"),
+            )
+        }
+
         val rgbMat = Mat()
         return try {
-            if (mat.type() == CvType.CV_8UC1) {
-                Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_GRAY2RGB)
-            } else {
-                Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_BGR2RGB)
+            when (mat.channels()) {
+                1 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_GRAY2RGB)
+                3 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_BGR2RGB)
+                4 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_BGRA2RGB)
+                else -> throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalArgumentException("Unsupported channel count ${mat.channels()} for image: $tag"),
+                )
             }
             NativeMat(rgbMat, "$tag[rgb]")
         } catch (e: CvException) {
@@ -68,13 +81,17 @@ internal actual class NativeMat(
                 "Failed to convert mat to RGB: $tag ${e.asLog()}"
             }
             rgbMat.release()
-            NativeMat()
+            throw OCRException(OCRReason.LoadingError, cause = e)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, TAG) {
                 "Unexpected error converting mat to RGB: $tag ${e.asLog()}"
             }
             rgbMat.release()
-            NativeMat()
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
+            }
         }
     }
 
@@ -129,9 +146,11 @@ internal actual class NativeMat(
                 }
             }
             if (mat.empty()) {
-                logcat(LogPriority.WARN, TAG) {
-                    "Decoded image is empty for tag: $tag"
-                }
+                mat.release()
+                throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalArgumentException("Decoded image is empty for tag: $tag"),
+                )
             }
             return NativeMat(mat, tag)
         }

@@ -64,6 +64,7 @@ internal abstract class PaddleOcrDetectionBase(
     private val ortSessionRef = AtomicReference<OrtSession?>(null)
 
     private val isInitialized = AtomicBoolean(false)
+    private val isClosed = AtomicBoolean(false)
 
     private val initJob: Job
 
@@ -100,6 +101,12 @@ internal abstract class PaddleOcrDetectionBase(
     }
 
     private suspend fun ensureInitialized() {
+        if (isClosed.load()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalStateException("Detection model is already closed"),
+            )
+        }
         if (!initJob.isCompleted) {
             logcat(TAG) { "Waiting for detection initialization..." }
             initJob.join()
@@ -128,7 +135,11 @@ internal abstract class PaddleOcrDetectionBase(
                     runDetection(image)
                 } catch (e: Exception) {
                     logcat(LogPriority.ERROR, TAG) { "Error during detection: ${e.asLog()}" }
-                    emptyList()
+                    throw if (e is OCRException) {
+                        e
+                    } else {
+                        OCRException(OCRReason.LoadingError, cause = e)
+                    }
                 }
             }
         }
@@ -147,15 +158,39 @@ internal abstract class PaddleOcrDetectionBase(
         val (inputTensor, resizeH, resizeW) = preprocessImage(inputImage, env)
 
         // Run inference
-        val output = session.run(mapOf("x" to inputTensor))
-        inputTensor.close()
+        val output = try {
+            session.run(mapOf("x" to inputTensor))
+        } finally {
+            inputTensor.close()
+        }
 
-        // Extract probability map from output — shape (1, 1, H, W)
-        @Suppress("UNCHECKED_CAST")
-        val rawOutput = output.get(0).value as Array<Array<Array<FloatArray>>>
-        val probMap = rawOutput[0][0] // batch 0, channel 0 → Array<FloatArray> i.e. [H][W]
+        val probMap = try {
+            val rawOutput = output.get(0).value as? Array<*>
+                ?: throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("Unexpected detection output type"),
+                )
+            val batch = rawOutput.firstOrNull() as? Array<*>
+                ?: throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("Detection output missing batch dimension"),
+                )
+            val channel = batch.firstOrNull() as? Array<*>
+                ?: throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("Detection output missing channel dimension"),
+                )
 
-        output.close()
+            Array(channel.size) { rowIndex ->
+                channel[rowIndex] as? FloatArray
+                    ?: throw OCRException(
+                        OCRReason.LoadingError,
+                        cause = IllegalStateException("Detection output row is not FloatArray at index $rowIndex"),
+                    )
+            }
+        } finally {
+            output.close()
+        }
 
         // Postprocess with DB algorithm
         return dbPostProcess(probMap, resizeH, resizeW, srcH, srcW)
@@ -367,8 +402,12 @@ internal abstract class PaddleOcrDetectionBase(
     }
 
     override fun close() {
+        if (!isClosed.compareAndSet(false, true)) {
+            return
+        }
+
         try {
-            runBlocking(dispatcher) {
+            runBlocking {
                 mutex.withLock {
                     withTimeout(15.seconds) {
                         cleanup()

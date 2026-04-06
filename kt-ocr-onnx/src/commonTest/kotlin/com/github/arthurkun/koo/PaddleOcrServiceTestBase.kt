@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isNotEmpty
 import kotlinx.coroutines.test.runTest
+import kotlin.test.assertFailsWith
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -47,5 +48,14 @@ abstract class PaddleOcrServiceTestBase {
         assertThat(normalized).isNotEmpty()
         assertThat(normalized).contains("Gate of Skye")
         assertThat(normalized).contains("Lv")
+    }
+
+    @Test
+    fun testDetectAndRecognizeTextInvalidBytesThrows() = runTest {
+        val invalidBytes = byteArrayOf(0x00, 0x11, 0x22, 0x33)
+
+        assertFailsWith<OCRException> {
+            paddleOcrService.detectAndRecognizeText(invalidBytes)
+        }
     }
 }

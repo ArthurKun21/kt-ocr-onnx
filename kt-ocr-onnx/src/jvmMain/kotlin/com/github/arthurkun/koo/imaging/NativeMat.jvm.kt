@@ -1,6 +1,8 @@
 package com.github.arthurkun.koo.imaging
 
 import com.github.arthurkun.koo.DetectedResults
+import com.github.arthurkun.koo.OCRException
+import com.github.arthurkun.koo.OCRReason
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import logcat.LogPriority
@@ -17,6 +19,7 @@ import org.bytedeco.opencv.global.opencv_core.CV_8UC1
 import org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_COLOR
 import org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE
 import org.bytedeco.opencv.global.opencv_imgcodecs.imdecode
+import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGRA2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_GRAY2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.cvtColor
@@ -64,12 +67,23 @@ internal actual class NativeMat(
     }
 
     actual override fun toRgbCvImage(): NativeMat {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot convert an empty image to RGB: $tag"),
+            )
+        }
+
         val rgbMat = Mat()
         return try {
-            if (mat.type() == CV_8UC1) {
-                cvtColor(mat, rgbMat, COLOR_GRAY2RGB)
-            } else {
-                cvtColor(mat, rgbMat, COLOR_BGR2RGB)
+            when (mat.channels()) {
+                1 -> cvtColor(mat, rgbMat, COLOR_GRAY2RGB)
+                3 -> cvtColor(mat, rgbMat, COLOR_BGR2RGB)
+                4 -> cvtColor(mat, rgbMat, COLOR_BGRA2RGB)
+                else -> throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalArgumentException("Unsupported channel count ${mat.channels()} for image: $tag"),
+                )
             }
             NativeMat(rgbMat, "$tag[rgb]")
         } catch (e: Exception) {
@@ -77,7 +91,11 @@ internal actual class NativeMat(
                 "Failed to convert mat to RGB: $tag ${e.asLog()}"
             }
             rgbMat.close()
-            NativeMat()
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
+            }
         }
     }
 
@@ -150,9 +168,11 @@ internal actual class NativeMat(
                 val decoded = imdecode(buf, if (isColor) IMREAD_COLOR else IMREAD_GRAYSCALE)
                 buf.close()
                 if (decoded.empty()) {
-                    logcat(LogPriority.WARN, TAG) {
-                        "Decoded image is empty for tag: $tag"
-                    }
+                    decoded.close()
+                    throw OCRException(
+                        OCRReason.LoadingError,
+                        cause = IllegalArgumentException("Decoded image is empty for tag: $tag"),
+                    )
                 }
                 NativeMat(decoded, tag)
             } finally {

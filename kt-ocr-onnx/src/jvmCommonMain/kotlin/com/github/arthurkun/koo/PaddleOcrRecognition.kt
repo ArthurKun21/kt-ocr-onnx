@@ -95,7 +95,7 @@ internal class PaddleOcrRecognition(
     private val dictionaryRef = AtomicReference<Map<Int, String>>(emptyMap())
 
     private val isInitialized = AtomicBoolean(false)
-    private val isInUse = AtomicBoolean(false)
+    private val isClosed = AtomicBoolean(false)
 
     private val initJob: Job
 
@@ -192,6 +192,12 @@ internal class PaddleOcrRecognition(
      * @throws OCRException if initialization failed
      */
     private suspend fun ensureInitialized() {
+        if (isClosed.load()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalStateException("Recognition model is already closed"),
+            )
+        }
         if (!initJob.isCompleted) {
             logcat(TAG) { "Waiting for PaddleOCR initialization..." }
             initJob.join()
@@ -217,13 +223,14 @@ internal class PaddleOcrRecognition(
         return mutex.withLock {
             withContext(dispatcher) {
                 try {
-                    isInUse.store(true)
                     runInference(image)
                 } catch (e: Exception) {
                     logcat(LogPriority.ERROR, TAG) { "Error during OCR: ${e.asLog()}" }
-                    RecognitionResult("", 0f)
-                } finally {
-                    isInUse.store(false)
+                    throw if (e is OCRException) {
+                        e
+                    } else {
+                        OCRException(OCRReason.LoadingError, cause = e)
+                    }
                 }
             }
         }
@@ -249,18 +256,24 @@ internal class PaddleOcrRecognition(
         val inputTensor = preprocessImage(inputImage, env)
 
         // Run inference
-        val output = session.run(mapOf("x" to inputTensor))
-        inputTensor.close()
+        val output = try {
+            session.run(mapOf("x" to inputTensor))
+        } finally {
+            inputTensor.close()
+        }
 
-        // Get output tensor
-        val outputTensor = output.get(0).value as Array<*>
+        return try {
+            val outputTensor = output.get(0).value as? Array<*>
+                ?: throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("Unexpected recognition output type"),
+                )
 
-        // Decode result using CTC decoding
-        val result = ctcDecode(outputTensor, dictionary)
-
-        output.close()
-
-        return result
+            // Decode result using CTC decoding
+            ctcDecode(outputTensor, dictionary)
+        } finally {
+            output.close()
+        }
     }
 
     /**
@@ -282,13 +295,9 @@ internal class PaddleOcrRecognition(
      */
     private fun preprocessImage(inputImage: CvImage, env: OrtEnvironment): OnnxTensor {
         if (inputImage.isEmpty()) {
-            logcat(LogPriority.WARN, TAG) { "Input image is empty, cannot preprocess." }
-            // Return a zero-filled tensor for graceful failure
-            val buffer = FloatBuffer.allocate(1 * CHANNELS * TARGET_HEIGHT * TARGET_WIDTH)
-            return OnnxTensor.createTensor(
-                env,
-                buffer,
-                longArrayOf(1, CHANNELS.toLong(), TARGET_HEIGHT.toLong(), TARGET_WIDTH.toLong()),
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Input image is empty"),
             )
         }
         val h = inputImage.height
@@ -364,11 +373,18 @@ internal class PaddleOcrRecognition(
         val confidences = mutableListOf<Float>()
 
         // Output shape is [1, seq_len, num_classes]
-        val batchOutput = output[0] as Array<FloatArray>
+        val batchOutput = output.firstOrNull() as? Array<*>
+            ?: throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalStateException("Recognition output missing batch dimension"),
+            )
 
         var prevIdx = -1
 
-        for (timestep in batchOutput) {
+        for (timestepRaw in batchOutput) {
+            val timestep = timestepRaw as? FloatArray ?: continue
+            if (timestep.isEmpty()) continue
+
             // Find the index with maximum logit (argmax)
             var maxIdx = 0
             var maxVal = timestep[0]
@@ -428,8 +444,12 @@ internal class PaddleOcrRecognition(
     }
 
     override fun close() {
+        if (!isClosed.compareAndSet(false, true)) {
+            return
+        }
+
         try {
-            runBlocking(dispatcher) {
+            runBlocking {
                 mutex.withLock {
                     withTimeout(15.seconds) {
                         cleanup()

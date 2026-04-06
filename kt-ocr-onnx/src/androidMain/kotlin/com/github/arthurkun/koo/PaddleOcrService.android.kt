@@ -14,6 +14,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import logcat.logcat
 import org.opencv.core.Mat
+import kotlin.concurrent.atomics.AtomicBoolean
 
 /**
  * OCR Service that combines [PaddleOcrDetection] and [PaddleOcrRecognition]
@@ -32,6 +33,7 @@ public actual class PaddleOcrService actual constructor(
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val isClosed = AtomicBoolean(false)
 
     init {
         initOpenCV()
@@ -98,87 +100,40 @@ public actual class PaddleOcrService actual constructor(
 
     private suspend fun detectAndRecognizeTextInternal(image: CvImage): List<OcrResult> {
         val nativeMat = image as NativeMat
-
-        // Skip detection for images that are already text-line sized;
-        // detection is designed for larger images with multiple text regions.
-        if (image.height <= TARGET_HEIGHT * 2) {
-            val result = recognition.detectText(image)
-            logcat(TAG) { "detectAndRecognizeText (whole-image recognition): ${result.text}" }
-            return if (result.text.isBlank()) {
-                emptyList()
-            } else {
-                listOf(
-                    OcrResult(wholeImageBox(image), result.text, result.score),
-                )
-            }
-        }
-
-        val boxes = detection.detect(image)
-
-        if (boxes.isEmpty()) {
-            val result = recognition.detectText(image)
-            logcat(TAG) { "detectAndRecognizeText (whole-image fallback): ${result.text}" }
-            return if (result.text.isBlank()) {
-                emptyList()
-            } else {
-                listOf(
-                    OcrResult(wholeImageBox(image), result.text, result.score),
-                )
-            }
-        }
-
-        val orderedBoxes = boxes.sortedForReadingOrder()
-        val results = mutableListOf<OcrResult>()
-
-        for (box in orderedBoxes) {
-            val crop = nativeMat.cropPerspective(box)
-            try {
-                if (crop.isEmpty() || crop.height < MIN_CROP_HEIGHT) continue
-                val recResult = recognition.detectText(crop)
-                val text = recResult.text.trim()
-                if (text.isNotEmpty()) {
-                    results.add(OcrResult(box, text, recResult.score))
-                }
-            } finally {
-                crop.close()
-            }
-        }
-
-        if (results.isEmpty()) {
-            val result = recognition.detectText(image)
-            logcat(TAG) { "detectAndRecognizeText (whole-image last resort): ${result.text}" }
-            return if (result.text.isBlank()) {
-                emptyList()
-            } else {
-                listOf(
-                    OcrResult(wholeImageBox(image), result.text, result.score),
-                )
-            }
-        }
-
-        logcat(TAG) { "detectAndRecognizeText: ${results.size} results" }
-        return results
+        return runDetectAndRecognizePipeline(
+            image = image,
+            detectText = ::detectTextInternal,
+            recognizeText = ::recognizeTextInternal,
+            cropFromBox = { box -> nativeMat.cropPerspective(box) },
+            log = { message -> logcat(TAG) { message } },
+        )
     }
 
     private suspend fun <T> withByteArrayImage(byteArray: ByteArray, block: suspend (CvImage) -> T): T {
         val image = CvImage.fromByteArray(byteArray, isColor = true, tag = "ocr_input")
-        val rgbImage = image.toRgbCvImage()
         return try {
-            block(rgbImage)
+            val rgbImage = image.toRgbCvImage()
+            try {
+                block(rgbImage)
+            } finally {
+                rgbImage.close()
+            }
         } finally {
             image.close()
-            rgbImage.close()
         }
     }
 
     private suspend fun <T> withBitmapImage(bitmap: Bitmap, block: suspend (CvImage) -> T): T {
         val image = cvImageFromBitmap(bitmap, "ocr_input")
-        val rgbImage = image.toRgbCvImage()
         return try {
-            block(rgbImage)
+            val rgbImage = image.toRgbCvImage()
+            try {
+                block(rgbImage)
+            } finally {
+                rgbImage.close()
+            }
         } finally {
             image.close()
-            rgbImage.close()
         }
     }
 
@@ -202,38 +157,14 @@ public actual class PaddleOcrService actual constructor(
     }
 
     actual override fun close() {
+        if (!isClosed.compareAndSet(false, true)) {
+            return
+        }
+
         detection.close()
         recognition.close()
         scope.cancel()
     }
-}
-
-/**
- * Sorts detected boxes in reading order: top-to-bottom, left-to-right.
- */
-private fun List<DetectedResults>.sortedForReadingOrder(): List<DetectedResults> {
-    return sortedWith(
-        compareBy<DetectedResults> { box ->
-            box.points.minOf { it.y }
-        }.thenBy { box ->
-            box.points.minOf { it.x }
-        },
-    )
-}
-
-/**
- * Creates a [DetectedResults] representing the whole image as a single detected region.
- */
-private fun wholeImageBox(image: CvImage): DetectedResults {
-    return DetectedResults(
-        points = listOf(
-            BoxPoint(0, 0),
-            BoxPoint(image.width, 0),
-            BoxPoint(image.width, image.height),
-            BoxPoint(0, image.height),
-        ),
-        score = 1.0f,
-    )
 }
 
 private const val TAG = "PaddleOcrService"
