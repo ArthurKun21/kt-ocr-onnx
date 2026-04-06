@@ -6,7 +6,7 @@ agp = "9.1.0"
 compose_multiplatform = "1.10.3"
 
 kotlinx_coroutines_core = "1.10.2"
-kotlinx_io = "0.7.0"
+kotlinx_io = "0.9.0"
 
 opencv_android = "4.13.0"
 javacv = "4.13.0-1.5.13"
