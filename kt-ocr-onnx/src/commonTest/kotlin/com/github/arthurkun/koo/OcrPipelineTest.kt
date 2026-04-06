@@ -64,7 +64,7 @@ private class FakeCvImage(
         throw UnsupportedOperationException("Not needed for this test")
     }
 
-    override fun getPixel(y: Int, x: Int): DoubleArray? {
+    override fun getPixel(y: Int, x: Int): DoubleArray {
         throw UnsupportedOperationException("Not needed for this test")
     }
 

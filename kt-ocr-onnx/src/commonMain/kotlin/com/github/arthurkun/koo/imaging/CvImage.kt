@@ -11,7 +11,7 @@ internal interface CvImage : AutoCloseable {
 
     fun toRgbCvImage(): CvImage
 
-    fun getPixel(y: Int, x: Int): DoubleArray?
+    fun getPixel(y: Int, x: Int): DoubleArray
 
     fun convertToFloat(): CvImage
 

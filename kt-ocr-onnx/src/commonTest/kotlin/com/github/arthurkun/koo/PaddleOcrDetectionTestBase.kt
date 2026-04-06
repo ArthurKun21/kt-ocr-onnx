@@ -42,7 +42,12 @@ abstract class PaddleOcrDetectionTestBase {
 
     private suspend fun loadTestImage(path: String): CvImage {
         val bytes = loadTestResourceBytes(path)
-        return CvImage.fromByteArray(bytes, isColor = true, tag = "det-test")
+        val image = CvImage.fromByteArray(bytes, isColor = true, tag = "det-test")
+        return try {
+            image.toRgbCvImage()
+        } finally {
+            image.close()
+        }
     }
 
     @Test

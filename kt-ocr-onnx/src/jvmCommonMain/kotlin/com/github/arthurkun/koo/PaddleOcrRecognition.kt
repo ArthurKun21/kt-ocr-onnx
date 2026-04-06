@@ -5,10 +5,9 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import com.github.arthurkun.koo.imaging.CvImage
 import com.github.arthurkun.koo.resources.Res
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -82,7 +81,7 @@ import kotlin.time.Duration.Companion.seconds
  * - **Output**: Log probabilities for each character class at each timestep
  */
 internal class PaddleOcrRecognition(
-    scope: CoroutineScope,
+    @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
     private val modelPath: String = MODEL_PATH,
     private val dictPath: String = DICT_PATH,
 ) : AutoCloseable {
@@ -94,19 +93,20 @@ internal class PaddleOcrRecognition(
     private val ortSessionRef = AtomicReference<OrtSession?>(null)
     private val dictionaryRef = AtomicReference<Map<Int, String>>(emptyMap())
 
+    private val initFailureRef = AtomicReference<Throwable?>(null)
     private val isInitialized = AtomicBoolean(false)
     private val isClosed = AtomicBoolean(false)
 
-    private val initJob: Job
-
-    init {
-        initJob = scope.launch {
-            initializeModel()
-        }
-    }
-
     private suspend fun initializeModel() = withContext(dispatcher) {
         mutex.withLock {
+            if (isInitialized.load()) {
+                return@withLock
+            }
+
+            initFailureRef.load()?.let { failure ->
+                throw OCRException(OCRReason.InitializationError, cause = failure)
+            }
+
             logcat(TAG) { "Initializing PaddleOCR model..." }
 
             try {
@@ -128,17 +128,24 @@ internal class PaddleOcrRecognition(
                 logcat(TAG) { "Model loaded, size: ${modelBytes.size} bytes" }
 
                 // Create session
-                val sessionOptions = OrtSession.SessionOptions().apply {
-                    setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                val session = OrtSession.SessionOptions().use { sessionOptions ->
+                    sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                    env.createSession(modelBytes, sessionOptions)
                 }
-                val session = env.createSession(modelBytes, sessionOptions)
                 ortSessionRef.store(session)
 
                 isInitialized.store(true)
                 logcat(LogPriority.INFO, TAG) { "PaddleOCR initialized successfully" }
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, TAG) { "Failed to initialize PaddleOCR: ${e.asLog()}" }
+            } catch (t: Throwable) {
+                if (t is CancellationException) {
+                    cleanup()
+                    throw t
+                }
+
+                initFailureRef.store(t)
+                logcat(LogPriority.ERROR, TAG) { "Failed to initialize PaddleOCR: ${t.asLog()}" }
                 cleanup()
+                throw OCRException(OCRReason.InitializationError, cause = t)
             }
         }
     }
@@ -198,11 +205,15 @@ internal class PaddleOcrRecognition(
                 cause = IllegalStateException("Recognition model is already closed"),
             )
         }
-        if (!initJob.isCompleted) {
-            logcat(TAG) { "Waiting for PaddleOCR initialization..." }
-            initJob.join()
-            logcat(TAG) { "PaddleOCR initialization job finished." }
+
+        initFailureRef.load()?.let { failure ->
+            throw OCRException(OCRReason.InitializationError, cause = failure)
         }
+
+        if (!isInitialized.load()) {
+            initializeModel()
+        }
+
         if (!isInitialized.load()) {
             throw OCRException(
                 OCRReason.InitializationError,
@@ -224,12 +235,16 @@ internal class PaddleOcrRecognition(
             withContext(dispatcher) {
                 try {
                     runInference(image)
-                } catch (e: Exception) {
-                    logcat(LogPriority.ERROR, TAG) { "Error during OCR: ${e.asLog()}" }
-                    throw if (e is OCRException) {
-                        e
+                } catch (t: Throwable) {
+                    if (t is CancellationException) {
+                        throw t
+                    }
+
+                    logcat(LogPriority.ERROR, TAG) { "Error during OCR: ${t.asLog()}" }
+                    throw if (t is OCRException) {
+                        t
                     } else {
-                        OCRException(OCRReason.LoadingError, cause = e)
+                        OCRException(OCRReason.LoadingError, cause = t)
                     }
                 }
             }
@@ -330,12 +345,10 @@ internal class PaddleOcrRecognition(
                 for (y in 0 until TARGET_HEIGHT) {
                     for (x in 0 until resizedW) {
                         val pixel = floatImage.getPixel(y, x)
-                        if (pixel != null) {
-                            // Normalization: (pixel/255 - 0.5) / 0.5
-                            val normalized = (pixel[c].toFloat() / 255.0f - 0.5f) / 0.5f
-                            val index = c * TARGET_HEIGHT * TARGET_WIDTH + y * TARGET_WIDTH + x
-                            buffer.put(index, normalized)
-                        }
+                        // Normalization: (pixel/255 - 0.5) / 0.5
+                        val normalized = (pixel[c].toFloat() / 255.0f - 0.5f) / 0.5f
+                        val index = c * TARGET_HEIGHT * TARGET_WIDTH + y * TARGET_WIDTH + x
+                        buffer.put(index, normalized)
                     }
                 }
             }

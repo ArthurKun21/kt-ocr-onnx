@@ -98,11 +98,32 @@ internal actual class NativeMat(
         }
     }
 
-    actual override fun getPixel(y: Int, x: Int): DoubleArray? {
+    actual override fun getPixel(y: Int, x: Int): DoubleArray {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot read pixels from an empty image: $tag"),
+            )
+        }
+        if (y !in 0 until height || x !in 0 until width) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IndexOutOfBoundsException("Pixel ($x, $y) is outside image bounds ${width}x$height: $tag"),
+            )
+        }
+
         return try {
             mat.get(y, x)
+                ?: throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("OpenCV returned no data for pixel ($x, $y): $tag"),
+                )
         } catch (e: Exception) {
-            null
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
+            }
         }
     }
 
@@ -113,6 +134,13 @@ internal actual class NativeMat(
     }
 
     actual override fun resizeTo(targetHeight: Int, targetWidth: Int): NativeMat {
+        if (mat.empty()) {
+            throw OCRException(
+                OCRReason.LoadingError,
+                cause = IllegalArgumentException("Cannot resize an empty image: $tag"),
+            )
+        }
+
         val result = Mat()
         try {
             Imgproc.resize(
@@ -120,9 +148,24 @@ internal actual class NativeMat(
                 result,
                 Size(targetWidth.toDouble(), targetHeight.toDouble()),
             )
+            if (result.empty()) {
+                throw OCRException(
+                    OCRReason.LoadingError,
+                    cause = IllegalStateException("Resize produced an empty image: $tag"),
+                )
+            }
         } catch (e: CvException) {
             logcat(LogPriority.ERROR, TAG) {
                 "Failed to resize mat: $tag ${e.asLog()}"
+            }
+            result.release()
+            throw OCRException(OCRReason.LoadingError, cause = e)
+        } catch (e: Exception) {
+            result.release()
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRException(OCRReason.LoadingError, cause = e)
             }
         }
         return NativeMat(result, "$tag[resized]")

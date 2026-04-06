@@ -11,10 +11,9 @@ import com.github.micycle1.clipper2.core.Paths64
 import com.github.micycle1.clipper2.core.Point64
 import com.github.micycle1.clipper2.offset.EndType
 import com.github.micycle1.clipper2.offset.JoinType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -53,7 +52,7 @@ import kotlin.time.Duration.Companion.seconds
  * - **PP-OCRv5 config**: configs/det/PP-OCRv5/PP-OCRv5_mobile_det.yml
  */
 internal abstract class PaddleOcrDetectionBase(
-    scope: CoroutineScope,
+    @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
     private val modelPath: String = DET_MODEL_PATH,
 ) : AutoCloseable {
 
@@ -63,19 +62,20 @@ internal abstract class PaddleOcrDetectionBase(
     private val ortEnvRef = AtomicReference<OrtEnvironment?>(null)
     private val ortSessionRef = AtomicReference<OrtSession?>(null)
 
+    private val initFailureRef = AtomicReference<Throwable?>(null)
     private val isInitialized = AtomicBoolean(false)
     private val isClosed = AtomicBoolean(false)
 
-    private val initJob: Job
-
-    init {
-        initJob = scope.launch {
-            initializeModel()
-        }
-    }
-
     private suspend fun initializeModel() = withContext(dispatcher) {
         mutex.withLock {
+            if (isInitialized.load()) {
+                return@withLock
+            }
+
+            initFailureRef.load()?.let { failure ->
+                throw OCRException(OCRReason.InitializationError, cause = failure)
+            }
+
             logcat(TAG) { "Initializing PaddleOCR detection model..." }
 
             try {
@@ -85,17 +85,24 @@ internal abstract class PaddleOcrDetectionBase(
                 val modelBytes = Res.readBytes(modelPath)
                 logcat(TAG) { "Detection model loaded, size: ${modelBytes.size} bytes" }
 
-                val sessionOptions = OrtSession.SessionOptions().apply {
-                    setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                val session = OrtSession.SessionOptions().use { sessionOptions ->
+                    sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                    env.createSession(modelBytes, sessionOptions)
                 }
-                val session = env.createSession(modelBytes, sessionOptions)
                 ortSessionRef.store(session)
 
                 isInitialized.store(true)
                 logcat(LogPriority.INFO, TAG) { "PaddleOCR detection initialized successfully" }
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, TAG) { "Failed to initialize detection: ${e.asLog()}" }
+            } catch (t: Throwable) {
+                if (t is CancellationException) {
+                    cleanup()
+                    throw t
+                }
+
+                initFailureRef.store(t)
+                logcat(LogPriority.ERROR, TAG) { "Failed to initialize detection: ${t.asLog()}" }
                 cleanup()
+                throw OCRException(OCRReason.InitializationError, cause = t)
             }
         }
     }
@@ -107,11 +114,15 @@ internal abstract class PaddleOcrDetectionBase(
                 cause = IllegalStateException("Detection model is already closed"),
             )
         }
-        if (!initJob.isCompleted) {
-            logcat(TAG) { "Waiting for detection initialization..." }
-            initJob.join()
-            logcat(TAG) { "Detection initialization finished." }
+
+        initFailureRef.load()?.let { failure ->
+            throw OCRException(OCRReason.InitializationError, cause = failure)
         }
+
+        if (!isInitialized.load()) {
+            initializeModel()
+        }
+
         if (!isInitialized.load()) {
             throw OCRException(
                 OCRReason.InitializationError,
@@ -123,7 +134,7 @@ internal abstract class PaddleOcrDetectionBase(
     /**
      * Detects text regions in the given image.
      *
-     * @param image Input image (BGR or RGB, will be used as-is)
+     * @param image Input image in RGB order.
      * @return List of detected text region boxes with scores
      */
     suspend fun detect(image: CvImage): List<DetectedResults> {
@@ -133,12 +144,16 @@ internal abstract class PaddleOcrDetectionBase(
             withContext(dispatcher) {
                 try {
                     runDetection(image)
-                } catch (e: Exception) {
-                    logcat(LogPriority.ERROR, TAG) { "Error during detection: ${e.asLog()}" }
-                    throw if (e is OCRException) {
-                        e
+                } catch (t: Throwable) {
+                    if (t is CancellationException) {
+                        throw t
+                    }
+
+                    logcat(LogPriority.ERROR, TAG) { "Error during detection: ${t.asLog()}" }
+                    throw if (t is OCRException) {
+                        t
                     } else {
-                        OCRException(OCRReason.LoadingError, cause = e)
+                        OCRException(OCRReason.LoadingError, cause = t)
                     }
                 }
             }
@@ -237,17 +252,15 @@ internal abstract class PaddleOcrDetectionBase(
         val buffer = FloatBuffer.allocate(bufferSize)
 
         try {
-            // The image from CvImage.fromByteArray with isColor=true is BGR (OpenCV default).
-            // PaddleOCR detection applies ImageNet mean/std in BGR order: [0.485, 0.456, 0.406]
+            // Service inputs are normalized to RGB before reaching the shared OCR pipeline.
+            // Apply ImageNet mean/std in RGB order: [0.485, 0.456, 0.406].
             for (c in 0 until CHANNELS) {
                 for (y in 0 until resizeH) {
                     for (x in 0 until resizeW) {
                         val pixel = floatImage.getPixel(y, x)
-                        if (pixel != null) {
-                            val normalized = (pixel[c].toFloat() / 255.0f - DET_MEAN[c]) / DET_STD[c]
-                            val index = c * resizeH * resizeW + y * resizeW + x
-                            buffer.put(index, normalized)
-                        }
+                        val normalized = (pixel[c].toFloat() / 255.0f - DET_MEAN[c]) / DET_STD[c]
+                        val index = c * resizeH * resizeW + y * resizeW + x
+                        buffer.put(index, normalized)
                     }
                 }
             }
