@@ -221,7 +221,6 @@ internal class PaddleOcrRecognition(
         if (!isInitialized.load()) {
             throw OCRInitializationException(
                 "Recognition model initialization failed",
-                cause = IllegalStateException("PaddleOCR initialization failed"),
             )
         }
     }
@@ -265,18 +264,15 @@ internal class PaddleOcrRecognition(
         val session = ortSessionRef.load()
             ?: throw OCRModelStateException(
                 "Recognition session not initialized",
-                IllegalStateException("Session not initialized"),
             )
         val env = ortEnvRef.load()
             ?: throw OCRModelStateException(
                 "Recognition environment not initialized",
-                IllegalStateException("Environment not initialized"),
             )
         val dictionary = dictionaryRef.load()
         if (dictionary.isEmpty()) {
             throw OCRModelStateException(
                 "Recognition dictionary not loaded",
-                IllegalStateException("Dictionary not loaded"),
             )
         }
 
@@ -294,7 +290,6 @@ internal class PaddleOcrRecognition(
             val outputTensor = output.get(0).value as? Array<*>
                 ?: throw OCRModelOutputException(
                     "Unexpected recognition output type",
-                    cause = IllegalStateException("Unexpected recognition output type"),
                 )
 
             // Decode result using CTC decoding
@@ -325,7 +320,6 @@ internal class PaddleOcrRecognition(
         if (inputImage.isEmpty()) {
             throw OCRImageProcessingException(
                 "Input image is empty",
-                cause = IllegalArgumentException("Input image is empty"),
             )
         }
         val h = inputImage.height
@@ -402,7 +396,6 @@ internal class PaddleOcrRecognition(
         val batchOutput = output.firstOrNull() as? Array<*>
             ?: throw OCRModelOutputException(
                 "Recognition output missing batch dimension",
-                cause = IllegalStateException("Recognition output missing batch dimension"),
             )
 
         var prevIdx = -1

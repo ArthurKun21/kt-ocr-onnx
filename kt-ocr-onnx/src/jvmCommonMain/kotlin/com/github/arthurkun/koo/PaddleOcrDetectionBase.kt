@@ -131,7 +131,6 @@ internal abstract class PaddleOcrDetectionBase(
         if (!isInitialized.load()) {
             throw OCRInitializationException(
                 "Detection model initialization failed",
-                cause = IllegalStateException("Detection model initialization failed"),
             )
         }
     }
@@ -169,12 +168,10 @@ internal abstract class PaddleOcrDetectionBase(
         val session = ortSessionRef.load()
             ?: throw OCRModelStateException(
                 "Detection session not initialized",
-                IllegalStateException("Session not initialized"),
             )
         val env = ortEnvRef.load()
             ?: throw OCRModelStateException(
                 "Detection environment not initialized",
-                IllegalStateException("Environment not initialized"),
             )
 
         val srcH = inputImage.height
@@ -194,24 +191,20 @@ internal abstract class PaddleOcrDetectionBase(
             val rawOutput = output.get(0).value as? Array<*>
                 ?: throw OCRModelOutputException(
                     "Unexpected detection output type",
-                    cause = IllegalStateException("Unexpected detection output type"),
                 )
             val batch = rawOutput.firstOrNull() as? Array<*>
                 ?: throw OCRModelOutputException(
                     "Detection output missing batch dimension",
-                    cause = IllegalStateException("Detection output missing batch dimension"),
                 )
             val channel = batch.firstOrNull() as? Array<*>
                 ?: throw OCRModelOutputException(
                     "Detection output missing channel dimension",
-                    cause = IllegalStateException("Detection output missing channel dimension"),
                 )
 
             Array(channel.size) { rowIndex ->
                 channel[rowIndex] as? FloatArray
                     ?: throw OCRModelOutputException(
                         "Detection output row is not FloatArray at index $rowIndex",
-                        cause = IllegalStateException("Detection output row is not FloatArray at index $rowIndex"),
                     )
             }
         } finally {

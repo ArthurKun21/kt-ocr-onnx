@@ -75,7 +75,6 @@ internal actual class NativeMat(
         if (mat.empty()) {
             throw OCRImageProcessingException(
                 "Cannot convert an empty image to RGB: $tag",
-                cause = IllegalArgumentException("Cannot convert an empty image to RGB: $tag"),
             )
         }
 
@@ -90,7 +89,6 @@ internal actual class NativeMat(
 
                 else -> throw OCRImageProcessingException(
                     "Unsupported channel count ${mat.channels()} for image: $tag",
-                    cause = IllegalArgumentException("Unsupported channel count ${mat.channels()} for image: $tag"),
                 )
             }
             NativeMat(rgbMat, "$tag[rgb]")
@@ -111,13 +109,11 @@ internal actual class NativeMat(
         if (mat.empty()) {
             throw OCRImageProcessingException(
                 "Cannot read pixels from an empty image: $tag",
-                cause = IllegalArgumentException("Cannot read pixels from an empty image: $tag"),
             )
         }
         if (y !in 0 until height || x !in 0 until width) {
             throw OCRImageProcessingException(
                 "Pixel ($x, $y) is outside image bounds ${width}x$height: $tag",
-                cause = IndexOutOfBoundsException("Pixel ($x, $y) is outside image bounds ${width}x$height: $tag"),
             )
         }
 
@@ -143,7 +139,6 @@ internal actual class NativeMat(
 
                 else -> throw OCRImageProcessingException(
                     "Unsupported mat depth ${mat.depth()} for image: $tag",
-                    cause = IllegalStateException("Unsupported mat depth ${mat.depth()} for image: $tag"),
                 )
             }
             result
@@ -166,7 +161,6 @@ internal actual class NativeMat(
         if (mat.empty()) {
             throw OCRImageProcessingException(
                 "Cannot resize an empty image: $tag",
-                cause = IllegalArgumentException("Cannot resize an empty image: $tag"),
             )
         }
 
@@ -180,7 +174,6 @@ internal actual class NativeMat(
             if (result.empty()) {
                 throw OCRImageProcessingException(
                     "Resize produced an empty image: $tag",
-                    cause = IllegalStateException("Resize produced an empty image: $tag"),
                 )
             }
         } catch (e: Exception) {
@@ -219,7 +212,6 @@ internal actual class NativeMat(
                     decoded.close()
                     throw OCRImageDecodeException(
                         "Decoded image is empty for tag: $tag",
-                        cause = IllegalArgumentException("Decoded image is empty for tag: $tag"),
                     )
                 }
                 NativeMat(decoded, tag)
