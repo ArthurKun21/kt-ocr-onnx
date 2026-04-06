@@ -15,6 +15,8 @@ import org.bytedeco.opencv.opencv_core.MatVector
 import org.bytedeco.opencv.opencv_core.Point2f
 import org.bytedeco.opencv.opencv_core.Rect
 import org.bytedeco.opencv.opencv_core.Scalar
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -158,10 +160,10 @@ internal class PaddleOcrDetection(
         val xCoords = points.map { it[0] }
         val yCoords = points.map { it[1] }
 
-        val xmin = xCoords.min().toInt().coerceIn(0, mapW - 1)
-        val xmax = xCoords.max().toInt().coerceIn(0, mapW - 1)
-        val ymin = yCoords.min().toInt().coerceIn(0, mapH - 1)
-        val ymax = yCoords.max().toInt().coerceIn(0, mapH - 1)
+        val xmin = floor(xCoords.min()).toInt().coerceIn(0, mapW - 1)
+        val xmax = ceil(xCoords.max()).toInt().coerceIn(0, mapW - 1)
+        val ymin = floor(yCoords.min()).toInt().coerceIn(0, mapH - 1)
+        val ymax = ceil(yCoords.max()).toInt().coerceIn(0, mapH - 1)
 
         if (xmin >= xmax || ymin >= ymax) return 0f
 
@@ -174,8 +176,8 @@ internal class PaddleOcrDetection(
         val shiftedPointsMat = Mat(points.size, 1, opencv_core.CV_32SC2)
         val shiftedIndexer = shiftedPointsMat.createIndexer<IntIndexer>()
         for (j in points.indices) {
-            shiftedIndexer.put(j.toLong(), 0L, 0L, (points[j][0] - xmin).toInt())
-            shiftedIndexer.put(j.toLong(), 0L, 1L, (points[j][1] - ymin).toInt())
+            shiftedIndexer.put(j.toLong(), 0L, 0L, (points[j][0] - xmin).roundToInt().coerceIn(0, roiW - 1))
+            shiftedIndexer.put(j.toLong(), 0L, 1L, (points[j][1] - ymin).roundToInt().coerceIn(0, roiH - 1))
         }
         shiftedIndexer.close()
 

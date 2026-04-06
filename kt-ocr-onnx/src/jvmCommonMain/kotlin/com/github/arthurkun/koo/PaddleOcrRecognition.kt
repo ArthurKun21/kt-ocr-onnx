@@ -412,8 +412,7 @@ internal class PaddleOcrRecognition(
             if (maxIdx != prevIdx && maxIdx != 0) {
                 dictionary[maxIdx]?.let { char ->
                     charList.add(char)
-                    // Compute softmax probability for this timestep's max class
-                    confidences.add(softmaxMax(timestep, maxIdx))
+                    confidences.add(maxVal)
                 }
             }
 
@@ -423,15 +422,6 @@ internal class PaddleOcrRecognition(
         val text = charList.joinToString("")
         val score = if (confidences.isEmpty()) 0f else confidences.average().toFloat()
         return RecognitionResult(text, score)
-    }
-
-    private fun softmaxMax(logits: FloatArray, maxIdx: Int): Float {
-        val maxLogit = logits[maxIdx]
-        var sumExp = 0.0
-        for (v in logits) {
-            sumExp += kotlin.math.exp((v - maxLogit).toDouble())
-        }
-        return (1.0 / sumExp).toFloat()
     }
 
     /**

@@ -22,9 +22,13 @@ import org.bytedeco.opencv.global.opencv_imgcodecs.imdecode
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGRA2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_GRAY2RGB
+import org.bytedeco.opencv.global.opencv_imgproc.INTER_CUBIC
 import org.bytedeco.opencv.global.opencv_imgproc.cvtColor
 import org.bytedeco.opencv.global.opencv_imgproc.getPerspectiveTransform
 import org.bytedeco.opencv.global.opencv_imgproc.warpPerspective
+import org.bytedeco.opencv.global.opencv_core.BORDER_REPLICATE
+import org.bytedeco.opencv.global.opencv_core.ROTATE_90_COUNTERCLOCKWISE
+import org.bytedeco.opencv.global.opencv_core.rotate
 import org.bytedeco.opencv.opencv_core.Mat
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -274,7 +278,17 @@ internal fun NativeMat.cropPerspective(box: DetectedResults): NativeMat {
 
     val transform = getPerspectiveTransform(srcPts, dstPts)
     val result = Mat()
-    warpPerspective(mat, result, transform, CvSize(dstW, dstH))
+    warpPerspective(mat, result, transform, CvSize(dstW, dstH), INTER_CUBIC, BORDER_REPLICATE, org.bytedeco.opencv.opencv_core.Scalar())
+
+    if (!result.empty() && result.cols() > 0 && result.rows().toDouble() / result.cols().toDouble() >= 1.5) {
+        val rotated = Mat()
+        rotate(result, rotated, ROTATE_90_COUNTERCLOCKWISE)
+        result.close()
+        srcPts.close()
+        dstPts.close()
+        transform.close()
+        return NativeMat(rotated, "$tag[crop]")
+    }
 
     srcPts.close()
     dstPts.close()

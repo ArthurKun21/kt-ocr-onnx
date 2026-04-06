@@ -12,6 +12,7 @@ import logcat.logcat
 import org.opencv.android.Utils
 import org.opencv.core.CvException
 import org.opencv.core.CvType
+import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.core.MatOfByte
 import org.opencv.core.MatOfPoint2f
@@ -247,7 +248,24 @@ internal fun NativeMat.cropPerspective(box: DetectedResults): NativeMat {
 
     val transform = Imgproc.getPerspectiveTransform(srcPts, dstPts)
     val result = Mat()
-    Imgproc.warpPerspective(mat, result, transform, Size(dstW.toDouble(), dstH.toDouble()))
+    Imgproc.warpPerspective(
+        mat,
+        result,
+        transform,
+        Size(dstW.toDouble(), dstH.toDouble()),
+        Imgproc.INTER_CUBIC,
+        Core.BORDER_REPLICATE,
+    )
+
+    if (!result.empty() && result.cols() > 0 && result.rows().toDouble() / result.cols().toDouble() >= 1.5) {
+        val rotated = Mat()
+        Core.rotate(result, rotated, Core.ROTATE_90_COUNTERCLOCKWISE)
+        result.release()
+        srcPts.release()
+        dstPts.release()
+        transform.release()
+        return NativeMat(rotated, "$tag[crop]")
+    }
 
     srcPts.release()
     dstPts.release()
