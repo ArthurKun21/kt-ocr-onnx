@@ -65,7 +65,6 @@ internal class PaddleOcrDetection(
         for (i in 0 until numContours) {
             val contour = contours.get(i.toLong())
             try {
-
                 // Get minimum area rotated rectangle
                 val contour2f = Mat()
                 contour.convertTo(contour2f, opencv_core.CV_32F)

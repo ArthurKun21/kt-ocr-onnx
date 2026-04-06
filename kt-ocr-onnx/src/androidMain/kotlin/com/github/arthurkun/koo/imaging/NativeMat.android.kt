@@ -68,8 +68,11 @@ internal actual class NativeMat(
         return try {
             when (mat.channels()) {
                 1 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_GRAY2RGB)
+
                 3 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_BGR2RGB)
+
                 4 -> Imgproc.cvtColor(mat, rgbMat, Imgproc.COLOR_BGRA2RGB)
+
                 else -> throw OCRException(
                     OCRReason.LoadingError,
                     cause = IllegalArgumentException("Unsupported channel count ${mat.channels()} for image: $tag"),

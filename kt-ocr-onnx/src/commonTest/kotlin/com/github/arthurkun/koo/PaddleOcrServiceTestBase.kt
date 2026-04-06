@@ -4,10 +4,10 @@ import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isNotEmpty
 import kotlinx.coroutines.test.runTest
-import kotlin.test.assertFailsWith
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 
 /**
  * Abstract base class for PaddleOcrService tests.

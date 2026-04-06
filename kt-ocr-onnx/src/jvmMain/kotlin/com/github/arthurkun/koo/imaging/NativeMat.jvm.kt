@@ -19,8 +19,8 @@ import org.bytedeco.opencv.global.opencv_core.CV_8UC1
 import org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_COLOR
 import org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE
 import org.bytedeco.opencv.global.opencv_imgcodecs.imdecode
-import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGRA2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB
+import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGRA2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_GRAY2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.cvtColor
 import org.bytedeco.opencv.global.opencv_imgproc.getPerspectiveTransform
@@ -78,8 +78,11 @@ internal actual class NativeMat(
         return try {
             when (mat.channels()) {
                 1 -> cvtColor(mat, rgbMat, COLOR_GRAY2RGB)
+
                 3 -> cvtColor(mat, rgbMat, COLOR_BGR2RGB)
+
                 4 -> cvtColor(mat, rgbMat, COLOR_BGRA2RGB)
+
                 else -> throw OCRException(
                     OCRReason.LoadingError,
                     cause = IllegalArgumentException("Unsupported channel count ${mat.channels()} for image: $tag"),
