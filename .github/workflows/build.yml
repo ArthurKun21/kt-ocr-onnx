@@ -74,7 +74,7 @@ jobs:
 
       - name: Compile Kt-OCR-ONNX Android
         run: |
-          ./gradlew :kt-ocr-onnx:compileKotlinAndroid --parallel
+          ./gradlew :kt-ocr-onnx:compileAndroidMain --parallel
 
       # - name: Upload artifacts
       #   uses: actions/upload-artifact@v7
