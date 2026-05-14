@@ -13,9 +13,9 @@ import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import com.github.arthurkun.koo.recognition.RecognitionModelLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import logcat.logcat
