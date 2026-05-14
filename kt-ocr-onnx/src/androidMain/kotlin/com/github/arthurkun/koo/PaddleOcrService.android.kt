@@ -57,9 +57,8 @@ public actual class PaddleOcrService actual constructor(
     actual override suspend fun recognizeText(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy,
     ): RecognitionResult {
-        return withRecognition(recognitionModel, recognitionModelCachePolicy) { recognition ->
+        return withRecognition(recognitionModel, this.recognitionModelCachePolicy) { recognition ->
             withByteArrayImage(byteArray) { recognizeTextInternal(it, recognition) }
         }
     }
@@ -67,9 +66,8 @@ public actual class PaddleOcrService actual constructor(
     actual override suspend fun detectAndRecognizeText(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy,
     ): List<OcrResult> {
-        return withRecognition(recognitionModel, recognitionModelCachePolicy) { recognition ->
+        return withRecognition(recognitionModel, this.recognitionModelCachePolicy) { recognition ->
             withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it, recognition) }
         }
     }
@@ -95,11 +93,11 @@ public actual class PaddleOcrService actual constructor(
     }
 
     override suspend fun recognizeText(uri: Uri): RecognitionResult {
-        return recognizeText(readUriBytes(uri), recognitionModel, recognitionModelCachePolicy)
+        return recognizeText(readUriBytes(uri), recognitionModel)
     }
 
     override suspend fun detectAndRecognizeText(uri: Uri): List<OcrResult> {
-        return detectAndRecognizeText(readUriBytes(uri), recognitionModel, recognitionModelCachePolicy)
+        return detectAndRecognizeText(readUriBytes(uri), recognitionModel)
     }
 
     override suspend fun detectText(mat: Mat): List<DetectedResults> {

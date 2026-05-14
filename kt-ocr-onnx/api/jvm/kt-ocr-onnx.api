@@ -33,15 +33,15 @@ public abstract interface class com/github/arthurkun/koo/JvmOcrApi : com/github/
 }
 
 public final class com/github/arthurkun/koo/JvmOcrApi$DefaultImpls {
-	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static fun detectText (Lcom/github/arthurkun/koo/JvmOcrApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static fun detectText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static fun detectText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/github/arthurkun/koo/OCRClosedException : com/github/arthurkun/koo/OCRException {
@@ -99,46 +99,46 @@ public final class com/github/arthurkun/koo/OCRModelStateException : com/github/
 }
 
 public abstract interface class com/github/arthurkun/koo/OcrApi : java/lang/AutoCloseable {
-	public fun detectAndRecognizeText (Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectAndRecognizeText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectAndRecognizeText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun detectAndRecognizeText ([BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun detectAndRecognizeText ([BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public fun detectText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun detectText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun detectText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun detectText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun recognizeText (Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun recognizeText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun recognizeText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun recognizeText ([BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public fun recognizeText (Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun recognizeText ([BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/github/arthurkun/koo/OcrApi$DefaultImpls {
-	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectAndRecognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static fun detectText (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static fun detectText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static fun detectText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun recognizeText (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun recognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun recognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun recognizeText (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/github/arthurkun/koo/OcrResult {
@@ -163,21 +163,21 @@ public final class com/github/arthurkun/koo/PaddleOcrService : com/github/arthur
 	public fun <init> (Ljava/lang/Object;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;)V
 	public synthetic fun <init> (Ljava/lang/Object;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun close ()V
-	public fun detectAndRecognizeText (Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectAndRecognizeText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectAndRecognizeText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun detectAndRecognizeText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectAndRecognizeText ([BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectAndRecognizeText ([BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun detectText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun detectText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun detectText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun detectText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun detectText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun recognizeText (Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun recognizeText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun recognizeText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Ljava/lang/String;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun recognizeText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun recognizeText ([BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun recognizeText ([BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/github/arthurkun/koo/RecognitionResult {

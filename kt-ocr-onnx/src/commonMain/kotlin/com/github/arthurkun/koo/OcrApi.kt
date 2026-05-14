@@ -1,7 +1,6 @@
 package com.github.arthurkun.koo
 
 import com.github.arthurkun.koo.recognition.RecognitionModel
-import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import kotlinx.io.Source
 import kotlinx.io.buffered
@@ -32,13 +31,11 @@ public interface OcrApi : AutoCloseable {
      *
      * @param byteArray The raw image bytes to be recognized.
      * @param recognitionModel The recognition model and dictionary to use.
-     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
     public suspend fun recognizeText(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
     ): RecognitionResult
 
     /**
@@ -46,13 +43,11 @@ public interface OcrApi : AutoCloseable {
      *
      * @param byteArray The raw image bytes to be processed.
      * @param recognitionModel The recognition model and dictionary to use.
-     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
     ): List<OcrResult>
 
     /**
@@ -69,28 +64,24 @@ public interface OcrApi : AutoCloseable {
      *
      * @param source The [Source] to read image bytes from.
      * @param recognitionModel The recognition model and dictionary to use.
-     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
     public suspend fun recognizeText(
         source: Source,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
-    ): RecognitionResult = recognizeText(source.readByteArray(), recognitionModel, recognitionModelCachePolicy)
+    ): RecognitionResult = recognizeText(source.readByteArray(), recognitionModel)
 
     /**
      * Detects text regions and recognizes text in each region from a [Source].
      *
      * @param source The [Source] to read image bytes from.
      * @param recognitionModel The recognition model and dictionary to use.
-     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         source: Source,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
-    ): List<OcrResult> = detectAndRecognizeText(source.readByteArray(), recognitionModel, recognitionModelCachePolicy)
+    ): List<OcrResult> = detectAndRecognizeText(source.readByteArray(), recognitionModel)
 
     /**
      * Detects text regions in the image at the specified file path.
@@ -106,28 +97,24 @@ public interface OcrApi : AutoCloseable {
      *
      * @param path The file path string of the image to be recognized.
      * @param recognitionModel The recognition model and dictionary to use.
-     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
     public suspend fun recognizeText(
         path: String,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
-    ): RecognitionResult = recognizeText(Path(path), recognitionModel, recognitionModelCachePolicy)
+    ): RecognitionResult = recognizeText(Path(path), recognitionModel)
 
     /**
      * Detects text regions and recognizes text in each region from the image at the specified file path.
      *
      * @param path The file path string of the image to be processed.
      * @param recognitionModel The recognition model and dictionary to use.
-     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         path: String,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
-    ): List<OcrResult> = detectAndRecognizeText(Path(path), recognitionModel, recognitionModelCachePolicy)
+    ): List<OcrResult> = detectAndRecognizeText(Path(path), recognitionModel)
 
     /**
      * Detects text regions in the image at the specified [Path].
@@ -145,16 +132,14 @@ public interface OcrApi : AutoCloseable {
      *
      * @param path The [Path] of the image to be recognized.
      * @param recognitionModel The recognition model and dictionary to use.
-     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
     public suspend fun recognizeText(
         path: Path,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
     ): RecognitionResult {
         val bytes = SystemFileSystem.source(path).buffered().use { it.readByteArray() }
-        return recognizeText(bytes, recognitionModel, recognitionModelCachePolicy)
+        return recognizeText(bytes, recognitionModel)
     }
 
     /**
@@ -162,15 +147,13 @@ public interface OcrApi : AutoCloseable {
      *
      * @param path The [Path] of the image to be processed.
      * @param recognitionModel The recognition model and dictionary to use.
-     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         path: Path,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
     ): List<OcrResult> {
         val bytes = SystemFileSystem.source(path).buffered().use { it.readByteArray() }
-        return detectAndRecognizeText(bytes, recognitionModel, recognitionModelCachePolicy)
+        return detectAndRecognizeText(bytes, recognitionModel)
     }
 }

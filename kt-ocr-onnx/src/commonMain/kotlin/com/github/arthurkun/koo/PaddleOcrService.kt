@@ -30,13 +30,11 @@ public expect class PaddleOcrService(
     override suspend fun recognizeText(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy,
     ): RecognitionResult
 
     override suspend fun detectAndRecognizeText(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel,
-        recognitionModelCachePolicy: RecognitionModelCachePolicy,
     ): List<OcrResult>
 
     override fun close()
