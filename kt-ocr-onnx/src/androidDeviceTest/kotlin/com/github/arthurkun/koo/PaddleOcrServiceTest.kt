@@ -11,6 +11,8 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotNull
 import com.github.arthurkun.koo.imaging.initOpenCV
+import com.github.arthurkun.koo.recognition.RecognitionModel
+import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
