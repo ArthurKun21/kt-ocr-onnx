@@ -30,11 +30,21 @@ abstract class PaddleOcrServiceTestBase {
      */
     abstract fun loadTestResourceBytes(path: String): ByteArray
 
+    protected open fun createPaddleOcrService(
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ): OcrApi {
+        return PaddleOcrService(
+            recognitionModel = recognitionModel,
+            recognitionModelCachePolicy = recognitionModelCachePolicy,
+        )
+    }
+
     protected lateinit var paddleOcrService: OcrApi
 
     @BeforeTest
     open fun setUp() {
-        paddleOcrService = PaddleOcrService()
+        paddleOcrService = createPaddleOcrService()
     }
 
     @AfterTest
@@ -67,7 +77,8 @@ abstract class PaddleOcrServiceTestBase {
     fun testDetectAndRecognizeTextLoadEachTimeReloadsRecognitionModel() = runTest {
         val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
         val recognitionModel = CountingRecognitionModel()
-        val localService = PaddleOcrService(
+        val localService = createPaddleOcrService(
+            recognitionModel = recognitionModel,
             recognitionModelCachePolicy = RecognitionModelCachePolicy.LOAD_EACH_TIME,
         )
 

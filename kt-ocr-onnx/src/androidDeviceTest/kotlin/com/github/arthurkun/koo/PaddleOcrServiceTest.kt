@@ -42,9 +42,20 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
         return Thread.currentThread().contextClassLoader!!.getResourceAsStream(path)!!.readBytes()
     }
 
+    override fun createPaddleOcrService(
+        recognitionModel: RecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy,
+    ): OcrApi {
+        return PaddleOcrService(
+            platformContext = context,
+            recognitionModel = recognitionModel,
+            recognitionModelCachePolicy = recognitionModelCachePolicy,
+        )
+    }
+
     @Before
     override fun setUp() {
-        paddleOcrService = PaddleOcrService(platformContext = context)
+        paddleOcrService = createPaddleOcrService()
     }
 
     @After
