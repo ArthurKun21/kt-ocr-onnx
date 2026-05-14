@@ -75,7 +75,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
         )
 
         try {
-            val results = (bitmapService as AndroidOcrApi).detectAndRecognizeText(bitmap)
+            val results = (bitmapService as AndroidOcrApi).detectAndRecognizeText(bitmap, recognitionModel)
             assertRecognizedTextMatchesBaseline(results)
             assertThat(recognitionModel.modelLoadCount).isEqualTo(1)
             assertThat(recognitionModel.dictionaryLoadCount).isEqualTo(1)

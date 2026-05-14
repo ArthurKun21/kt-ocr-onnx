@@ -240,6 +240,24 @@ internal class PaddleOcrRecognition(
         }
     }
 
+    suspend fun closeSuspending() {
+        if (!isClosed.compareAndSet(false, true)) {
+            return
+        }
+
+        try {
+            mutex.withLock {
+                withTimeout(15.seconds) {
+                    withContext(dispatcher) {
+                        cleanup()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, TAG) { "Error closing PaddleOCR recognition: ${e.asLog()}" }
+        }
+    }
+
     /**
      * Runs inference on the preprocessed image.
      *
@@ -440,20 +458,8 @@ internal class PaddleOcrRecognition(
     }
 
     override fun close() {
-        if (!isClosed.compareAndSet(false, true)) {
-            return
-        }
-
-        try {
-            runBlocking {
-                mutex.withLock {
-                    withTimeout(15.seconds) {
-                        cleanup()
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            logcat(LogPriority.ERROR, TAG) { "Error closing PaddleOCR recognition: ${e.asLog()}" }
+        runBlocking {
+            closeSuspending()
         }
     }
 }

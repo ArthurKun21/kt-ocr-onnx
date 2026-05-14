@@ -60,9 +60,8 @@ public class RecognitionModelLoader public constructor(
 
         var index = 1
         dictionaryBytes.decodeToString().lineSequence().forEach { line ->
-            val char = line.trimEnd('\n', '\r')
-            if (char.isNotEmpty()) {
-                charDict[index] = char
+            if (line.isNotEmpty()) {
+                charDict[index] = line
                 index++
             }
         }
