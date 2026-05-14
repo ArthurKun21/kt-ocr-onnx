@@ -10,13 +10,20 @@ Perform a comprehensive code review of the current outstanding changes (uncommit
 ## Instructions
 
 1. Review all changed files in the current diff.
-2. Evaluate changes against the project conventions defined in `AGENTS.md`.
+2. Evaluate changes against the project conventions defined in `AGENTS.md`, especially:
+   - Kotlin `explicitApi()` expectations: public APIs need explicit visibility and non-API code should stay `internal`.
+   - Kotlin Multiplatform boundaries: keep `expect`/`actual` and source-set-specific code in the correct source set.
+   - Style rules: 4-space indentation, no wildcard imports, and a maximum line length of 120.
+   - Public API changes: note when ABI-related updates or missing API coverage should be called out.
+   - Existing architecture patterns around `OcrApi`, `PaddleOcrService`, and recognition model abstractions.
 3. Check for the following categories of issues:
 
-   - **Critical**: Security vulnerabilities, data loss risks, crashes, broken builds.
-   - **High**: Logic errors, race conditions, missing error handling at system boundaries, performance regressions (e.g., O(n²) where O(n) is possible).
-   - **Medium**: Code style violations, missing visibility modifiers (explicit API modules), deviation from project patterns (interface/impl separation, Metro DI conventions, immutable collections in Compose).
-   - **Low**: Naming improvements, documentation gaps, minor readability suggestions.
+   - **Critical**: Security vulnerabilities, data loss risks, crashes, or broken builds.
+   - **High**: Logic errors, race conditions, missing boundary error handling, or clear performance regressions.
+   - **Medium**: Violations of the project conventions listed above.
+   - **Low**: Naming, documentation, or minor readability improvements.
+
+   Use the highest applicable severity for each finding.
 
 4. For each issue found, identify:
    - **Location**: file path and line number.
