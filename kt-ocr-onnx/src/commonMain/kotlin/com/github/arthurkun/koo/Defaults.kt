@@ -1,10 +1,5 @@
 package com.github.arthurkun.koo
 
-// --- Recognition model defaults ---
-
-internal const val MODEL_PATH = "files/base/PP-OCRv5_mobile_rec.onnx"
-internal const val DICT_PATH = "files/base/ppocrv5_dict.txt"
-
 /**
  * Target height for PP-OCRv5 recognition model.
  * The model expects images with height of 48 pixels.

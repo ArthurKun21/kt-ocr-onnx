@@ -1,5 +1,8 @@
 package com.github.arthurkun.koo
 
+import com.github.arthurkun.koo.recognition.RecognitionModel
+import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
+import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import kotlinx.io.Source
 import kotlinx.io.buffered
 import kotlinx.io.files.Path
@@ -28,17 +31,29 @@ public interface OcrApi : AutoCloseable {
      * Recognizes text from a single image, typically a cropped text-line region.
      *
      * @param byteArray The raw image bytes to be recognized.
+     * @param recognitionModel The recognition model and dictionary to use.
+     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
-    public suspend fun recognizeText(byteArray: ByteArray): RecognitionResult
+    public suspend fun recognizeText(
+        byteArray: ByteArray,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ): RecognitionResult
 
     /**
      * Detects text regions and recognizes text in each region.
      *
      * @param byteArray The raw image bytes to be processed.
+     * @param recognitionModel The recognition model and dictionary to use.
+     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
-    public suspend fun detectAndRecognizeText(byteArray: ByteArray): List<OcrResult>
+    public suspend fun detectAndRecognizeText(
+        byteArray: ByteArray,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ): List<OcrResult>
 
     /**
      * Detects text regions in the provided image read from a [Source].
@@ -53,19 +68,29 @@ public interface OcrApi : AutoCloseable {
      * Recognizes text from a single image read from a [Source].
      *
      * @param source The [Source] to read image bytes from.
+     * @param recognitionModel The recognition model and dictionary to use.
+     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
-    public suspend fun recognizeText(source: Source): RecognitionResult =
-        recognizeText(source.readByteArray())
+    public suspend fun recognizeText(
+        source: Source,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ): RecognitionResult = recognizeText(source.readByteArray(), recognitionModel, recognitionModelCachePolicy)
 
     /**
      * Detects text regions and recognizes text in each region from a [Source].
      *
      * @param source The [Source] to read image bytes from.
+     * @param recognitionModel The recognition model and dictionary to use.
+     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
-    public suspend fun detectAndRecognizeText(source: Source): List<OcrResult> =
-        detectAndRecognizeText(source.readByteArray())
+    public suspend fun detectAndRecognizeText(
+        source: Source,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ): List<OcrResult> = detectAndRecognizeText(source.readByteArray(), recognitionModel, recognitionModelCachePolicy)
 
     /**
      * Detects text regions in the image at the specified file path.
@@ -80,19 +105,29 @@ public interface OcrApi : AutoCloseable {
      * Recognizes text from the image at the specified file path.
      *
      * @param path The file path string of the image to be recognized.
+     * @param recognitionModel The recognition model and dictionary to use.
+     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
-    public suspend fun recognizeText(path: String): RecognitionResult =
-        recognizeText(Path(path))
+    public suspend fun recognizeText(
+        path: String,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ): RecognitionResult = recognizeText(Path(path), recognitionModel, recognitionModelCachePolicy)
 
     /**
      * Detects text regions and recognizes text in each region from the image at the specified file path.
      *
      * @param path The file path string of the image to be processed.
+     * @param recognitionModel The recognition model and dictionary to use.
+     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
-    public suspend fun detectAndRecognizeText(path: String): List<OcrResult> =
-        detectAndRecognizeText(Path(path))
+    public suspend fun detectAndRecognizeText(
+        path: String,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ): List<OcrResult> = detectAndRecognizeText(Path(path), recognitionModel, recognitionModelCachePolicy)
 
     /**
      * Detects text regions in the image at the specified [Path].
@@ -109,21 +144,33 @@ public interface OcrApi : AutoCloseable {
      * Recognizes text from the image at the specified [Path].
      *
      * @param path The [Path] of the image to be recognized.
+     * @param recognitionModel The recognition model and dictionary to use.
+     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
-    public suspend fun recognizeText(path: Path): RecognitionResult {
+    public suspend fun recognizeText(
+        path: Path,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ): RecognitionResult {
         val bytes = SystemFileSystem.source(path).buffered().use { it.readByteArray() }
-        return recognizeText(bytes)
+        return recognizeText(bytes, recognitionModel, recognitionModelCachePolicy)
     }
 
     /**
      * Detects text regions and recognizes text in each region from the image at the specified [Path].
      *
      * @param path The [Path] of the image to be processed.
+     * @param recognitionModel The recognition model and dictionary to use.
+     * @param recognitionModelCachePolicy Controls whether model and dictionary data are retained in memory.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
-    public suspend fun detectAndRecognizeText(path: Path): List<OcrResult> {
+    public suspend fun detectAndRecognizeText(
+        path: Path,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ): List<OcrResult> {
         val bytes = SystemFileSystem.source(path).buffered().use { it.readByteArray() }
-        return detectAndRecognizeText(bytes)
+        return detectAndRecognizeText(bytes, recognitionModel, recognitionModelCachePolicy)
     }
 }

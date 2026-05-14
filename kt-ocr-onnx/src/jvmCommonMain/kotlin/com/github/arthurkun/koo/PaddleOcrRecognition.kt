@@ -4,7 +4,9 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import com.github.arthurkun.koo.imaging.CvImage
-import com.github.arthurkun.koo.resources.Res
+import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
+import com.github.arthurkun.koo.recognition.RecognitionModelLoader
+import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -82,8 +84,10 @@ import kotlin.time.Duration.Companion.seconds
  */
 internal class PaddleOcrRecognition(
     @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
-    private val modelPath: String = MODEL_PATH,
-    private val dictPath: String = DICT_PATH,
+    private val modelLoader: RecognitionModelLoader = RecognitionModelLoader(
+        BaseRecognitionModel,
+        RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+    ),
 ) : AutoCloseable {
 
     private val dispatcher = Dispatchers.Default.limitedParallelism(1)
@@ -127,7 +131,7 @@ internal class PaddleOcrRecognition(
                 ortEnvRef.store(env)
 
                 // Load model from assets
-                val modelBytes = Res.readBytes(modelPath)
+                val modelBytes = modelLoader.loadModelBytes()
                 logcat(TAG) { "Model loaded, size: ${modelBytes.size} bytes" }
 
                 // Create session
@@ -170,25 +174,7 @@ internal class PaddleOcrRecognition(
     private suspend fun loadDictionary(): Map<Int, String> {
         return try {
             val charDict = mutableMapOf<Int, String>()
-            // Index 0 is blank token for CTC decoding
-            charDict[0] = "blank"
-
-            var index = 1
-            Res.readBytes(dictPath).inputStream().buffered().reader().useLines { lines ->
-                lines.forEach { line ->
-                    // Strip newlines and carriage returns like Python does
-                    val char = line.trimEnd('\n', '\r')
-                    if (char.isNotEmpty()) {
-                        charDict[index] = char
-                        index++
-                    }
-                }
-            }
-
-            // Append space character at the end (use_space_char=True in PaddleOCR)
-            // Reference: BaseRecLabelDecode.__init__ in rec_postprocess.py
-            charDict[index] = " "
-
+            charDict.putAll(modelLoader.loadDictionary())
             charDict
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, TAG) { "Failed to load dictionary: ${e.asLog()}" }
@@ -449,6 +435,7 @@ internal class PaddleOcrRecognition(
         }
 
         dictionaryRef.store(emptyMap())
+        modelLoader.close()
         isInitialized.store(false)
     }
 

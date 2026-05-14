@@ -8,10 +8,15 @@ import com.github.arthurkun.koo.imaging.NativeMat
 import com.github.arthurkun.koo.imaging.cropPerspective
 import com.github.arthurkun.koo.imaging.cvImageFromBitmap
 import com.github.arthurkun.koo.imaging.initOpenCV
+import com.github.arthurkun.koo.recognition.RecognitionModel
+import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
+import com.github.arthurkun.koo.recognition.RecognitionModelLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import logcat.logcat
 import org.opencv.core.Mat
 import kotlin.concurrent.atomics.AtomicBoolean
@@ -26,6 +31,8 @@ import kotlin.concurrent.atomics.AtomicBoolean
  */
 public actual class PaddleOcrService actual constructor(
     platformContext: Any?,
+    private val recognitionModel: RecognitionModel,
+    private val recognitionModelCachePolicy: RecognitionModelCachePolicy,
 ) : AndroidOcrApi {
 
     private val context: Context = requireNotNull(platformContext as? Context) {
@@ -34,24 +41,37 @@ public actual class PaddleOcrService actual constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isClosed = AtomicBoolean(false)
+    private val recognitionMutex = Mutex()
+    private val cachedRecognitions = mutableMapOf<String, PaddleOcrRecognition>()
 
     init {
         initOpenCV()
     }
 
     private val detection = PaddleOcrDetection(scope, DET_MODEL_PATH)
-    private val recognition = PaddleOcrRecognition(scope, MODEL_PATH, DICT_PATH)
 
     actual override suspend fun detectText(byteArray: ByteArray): List<DetectedResults> {
         return withByteArrayImage(byteArray) { detectTextInternal(it) }
     }
 
-    actual override suspend fun recognizeText(byteArray: ByteArray): RecognitionResult {
-        return withByteArrayImage(byteArray) { recognizeTextInternal(it) }
+    actual override suspend fun recognizeText(
+        byteArray: ByteArray,
+        recognitionModel: RecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy,
+    ): RecognitionResult {
+        return withRecognition(recognitionModel, recognitionModelCachePolicy) { recognition ->
+            withByteArrayImage(byteArray) { recognizeTextInternal(it, recognition) }
+        }
     }
 
-    actual override suspend fun detectAndRecognizeText(byteArray: ByteArray): List<OcrResult> {
-        return withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it) }
+    actual override suspend fun detectAndRecognizeText(
+        byteArray: ByteArray,
+        recognitionModel: RecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy,
+    ): List<OcrResult> {
+        return withRecognition(recognitionModel, recognitionModelCachePolicy) { recognition ->
+            withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it, recognition) }
+        }
     }
 
     override suspend fun detectText(bitmap: Bitmap): List<DetectedResults> {
@@ -59,11 +79,15 @@ public actual class PaddleOcrService actual constructor(
     }
 
     override suspend fun recognizeText(bitmap: Bitmap): RecognitionResult {
-        return withBitmapImage(bitmap) { recognizeTextInternal(it) }
+        return withRecognition(recognitionModel, recognitionModelCachePolicy) { recognition ->
+            withBitmapImage(bitmap) { recognizeTextInternal(it, recognition) }
+        }
     }
 
     override suspend fun detectAndRecognizeText(bitmap: Bitmap): List<OcrResult> {
-        return withBitmapImage(bitmap) { detectAndRecognizeTextInternal(it) }
+        return withRecognition(recognitionModel, recognitionModelCachePolicy) { recognition ->
+            withBitmapImage(bitmap) { detectAndRecognizeTextInternal(it, recognition) }
+        }
     }
 
     override suspend fun detectText(uri: Uri): List<DetectedResults> {
@@ -71,11 +95,11 @@ public actual class PaddleOcrService actual constructor(
     }
 
     override suspend fun recognizeText(uri: Uri): RecognitionResult {
-        return recognizeText(readUriBytes(uri))
+        return recognizeText(readUriBytes(uri), recognitionModel, recognitionModelCachePolicy)
     }
 
     override suspend fun detectAndRecognizeText(uri: Uri): List<OcrResult> {
-        return detectAndRecognizeText(readUriBytes(uri))
+        return detectAndRecognizeText(readUriBytes(uri), recognitionModel, recognitionModelCachePolicy)
     }
 
     override suspend fun detectText(mat: Mat): List<DetectedResults> {
@@ -83,29 +107,68 @@ public actual class PaddleOcrService actual constructor(
     }
 
     override suspend fun recognizeText(mat: Mat): RecognitionResult {
-        return withMatImage(mat) { recognizeTextInternal(it) }
+        return withRecognition(recognitionModel, recognitionModelCachePolicy) { recognition ->
+            withMatImage(mat) { recognizeTextInternal(it, recognition) }
+        }
     }
 
     override suspend fun detectAndRecognizeText(mat: Mat): List<OcrResult> {
-        return withMatImage(mat) { detectAndRecognizeTextInternal(it) }
+        return withRecognition(recognitionModel, recognitionModelCachePolicy) { recognition ->
+            withMatImage(mat) { detectAndRecognizeTextInternal(it, recognition) }
+        }
     }
 
     private suspend fun detectTextInternal(image: CvImage): List<DetectedResults> {
         return detection.detect(image)
     }
 
-    private suspend fun recognizeTextInternal(image: CvImage): RecognitionResult {
+    private suspend fun recognizeTextInternal(image: CvImage, recognition: PaddleOcrRecognition): RecognitionResult {
         return recognition.detectText(image)
     }
 
-    private suspend fun detectAndRecognizeTextInternal(image: CvImage): List<OcrResult> {
+    private suspend fun detectAndRecognizeTextInternal(
+        image: CvImage,
+        recognition: PaddleOcrRecognition,
+    ): List<OcrResult> {
         val nativeMat = image as NativeMat
         return runDetectAndRecognizePipeline(
             image = image,
             detectText = ::detectTextInternal,
-            recognizeText = ::recognizeTextInternal,
+            recognizeText = { croppedImage -> recognizeTextInternal(croppedImage, recognition) },
             cropFromBox = { box -> nativeMat.cropPerspective(box) },
             log = { message -> logcat(TAG) { message } },
+        )
+    }
+
+    private suspend fun <T> withRecognition(
+        recognitionModel: RecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy,
+        block: suspend (PaddleOcrRecognition) -> T,
+    ): T {
+        if (recognitionModelCachePolicy == RecognitionModelCachePolicy.LOAD_EACH_TIME) {
+            val recognition = createRecognition(recognitionModel, recognitionModelCachePolicy)
+            return try {
+                block(recognition)
+            } finally {
+                recognition.close()
+            }
+        }
+
+        val recognition = recognitionMutex.withLock {
+            cachedRecognitions.getOrPut(recognitionModel.id) {
+                createRecognition(recognitionModel, recognitionModelCachePolicy)
+            }
+        }
+        return block(recognition)
+    }
+
+    private fun createRecognition(
+        recognitionModel: RecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy,
+    ): PaddleOcrRecognition {
+        return PaddleOcrRecognition(
+            scope,
+            RecognitionModelLoader(recognitionModel, recognitionModelCachePolicy),
         )
     }
 
@@ -161,7 +224,8 @@ public actual class PaddleOcrService actual constructor(
         }
 
         detection.close()
-        recognition.close()
+        cachedRecognitions.values.forEach { it.close() }
+        cachedRecognitions.clear()
         scope.cancel()
     }
 }
