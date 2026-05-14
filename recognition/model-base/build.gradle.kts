@@ -8,6 +8,7 @@ kotlin {
 
     android {
         namespace = "com.github.arthurkun.koo.recognition.base"
+        androidResources.enable = true
     }
 
     sourceSets {
