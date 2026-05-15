@@ -66,7 +66,20 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     }
 
     @Test
-    fun testDetectAndRecognizeTextFromTestImageBitmap() = runTest {
+    fun testDetectAndRecognizeTextFromTestImageBitmapUsesDefaultRecognitionModel() = runTest {
+        val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
+
+        try {
+            val results = (paddleOcrService as AndroidOcrApi).detectAndRecognizeText(bitmap)
+            assertRecognizedTextMatchesBaseline(results)
+            Log.i(TAG, "Recognized text: '${results.joinToString(" ") { it.text }}'")
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
+    fun testDetectAndRecognizeTextBitmapUsesExplicitRecognitionSession() = runTest {
         val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
         val recognitionModel = CountingRecognitionModel()
         val bitmapService = PaddleOcrService(

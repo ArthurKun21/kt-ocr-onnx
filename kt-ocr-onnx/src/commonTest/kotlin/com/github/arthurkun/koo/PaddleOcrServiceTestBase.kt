@@ -60,7 +60,7 @@ abstract class PaddleOcrServiceTestBase {
     }
 
     @Test
-    fun testDetectAndRecognizeTextUsesExplicitRecognitionModel() = runTest {
+    fun testDetectAndRecognizeTextKeepsExplicitRecognitionSessionInMemory() = runTest {
         val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
         val recognitionModel = CountingRecognitionModel()
 
@@ -74,7 +74,7 @@ abstract class PaddleOcrServiceTestBase {
     }
 
     @Test
-    fun testDetectAndRecognizeTextLoadEachTimeReloadsRecognitionModel() = runTest {
+    fun testDetectAndRecognizeTextLoadEachTimeCreatesNewRecognitionSession() = runTest {
         val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
         val recognitionModel = CountingRecognitionModel()
         val localService = createPaddleOcrService(
@@ -94,6 +94,24 @@ abstract class PaddleOcrServiceTestBase {
 
         assertThat(recognitionModel.modelLoadCount).isEqualTo(2)
         assertThat(recognitionModel.dictionaryLoadCount).isEqualTo(2)
+    }
+
+    @Test
+    fun testCloseRejectsFurtherRecognitionRequests() = runTest {
+        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
+        val recognitionModel = CountingRecognitionModel()
+        val localService = createPaddleOcrService(recognitionModel = recognitionModel)
+
+        val results = localService.detectAndRecognizeText(bytes, recognitionModel)
+        assertRecognizedTextMatchesBaseline(results)
+
+        localService.close()
+
+        assertFailsWith<OCRClosedException> {
+            localService.detectAndRecognizeText(bytes, recognitionModel)
+        }
+        assertThat(recognitionModel.modelLoadCount).isEqualTo(1)
+        assertThat(recognitionModel.dictionaryLoadCount).isEqualTo(1)
     }
 
     @Test

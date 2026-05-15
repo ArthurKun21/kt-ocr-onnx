@@ -26,7 +26,20 @@ class PaddleOcrServiceJvmTest : PaddleOcrServiceTestBase() {
     }
 
     @Test
-    fun testDetectAndRecognizeTextMatUsesExplicitRecognitionModel() = runTest {
+    fun testDetectAndRecognizeTextMatUsesDefaultRecognitionModel() = runTest {
+        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
+        val image = NativeMat.fromByteArray(bytes, isColor = true, tag = "jvm-test")
+
+        try {
+            val results = (paddleOcrService as JvmOcrApi).detectAndRecognizeText(image.mat)
+            assertRecognizedTextMatchesBaseline(results)
+        } finally {
+            image.close()
+        }
+    }
+
+    @Test
+    fun testDetectAndRecognizeTextMatUsesExplicitRecognitionSession() = runTest {
         val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
         val recognitionModel = CountingRecognitionModel()
         val image = NativeMat.fromByteArray(bytes, isColor = true, tag = "jvm-test")
