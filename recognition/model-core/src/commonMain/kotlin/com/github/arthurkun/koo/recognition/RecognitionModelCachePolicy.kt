@@ -1,10 +1,10 @@
 package com.github.arthurkun.koo.recognition
 
-/** Controls whether recognition model assets are retained after they are loaded. */
+/** Controls whether recognition sessions are reused between OCR requests. */
 public enum class RecognitionModelCachePolicy {
-    /** Keep the ONNX model bytes and parsed dictionary in memory for reuse. */
+    /** Keep initialized recognition sessions in memory for reuse. */
     KEEP_IN_MEMORY,
 
-    /** Ask the [RecognitionModel] to load its bytes whenever the model data is requested. */
+    /** Create and close a recognition session for each request. */
     LOAD_EACH_TIME,
 }

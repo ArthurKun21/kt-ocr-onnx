@@ -22,27 +22,23 @@ public interface JvmOcrApi : OcrApi {
      * Recognizes text from the provided bytedeco OpenCV [mat].
      *
      * @param mat The bytedeco OpenCV Mat image to recognize text from.
+     * @param recognitionModel The recognition model and dictionary to use.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
-    public suspend fun recognizeText(mat: Mat): RecognitionResult =
-        recognizeText(mat, BaseRecognitionModel)
-
     public suspend fun recognizeText(
         mat: Mat,
-        recognitionModel: RecognitionModel,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
     ): RecognitionResult
 
     /**
      * Detects text regions and recognizes text in each region of the provided bytedeco OpenCV [mat].
      *
      * @param mat The bytedeco OpenCV Mat image to perform full OCR on.
+     * @param recognitionModel The recognition model and dictionary to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
-    public suspend fun detectAndRecognizeText(mat: Mat): List<OcrResult> =
-        detectAndRecognizeText(mat, BaseRecognitionModel)
-
     public suspend fun detectAndRecognizeText(
         mat: Mat,
-        recognitionModel: RecognitionModel,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
     ): List<OcrResult>
 }

@@ -24,28 +24,24 @@ public interface AndroidOcrApi : OcrApi {
      * Recognizes text from a single [bitmap], typically a cropped text-line region.
      *
      * @param bitmap The image to recognize text from.
+     * @param recognitionModel The recognition model and dictionary to use.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
-    public suspend fun recognizeText(bitmap: Bitmap): RecognitionResult =
-        recognizeText(bitmap, BaseRecognitionModel)
-
     public suspend fun recognizeText(
         bitmap: Bitmap,
-        recognitionModel: RecognitionModel,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
     ): RecognitionResult
 
     /**
      * Detects text regions and recognizes text in each region of the provided [bitmap].
      *
      * @param bitmap The image to perform full OCR on.
+     * @param recognitionModel The recognition model and dictionary to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
-    public suspend fun detectAndRecognizeText(bitmap: Bitmap): List<OcrResult> =
-        detectAndRecognizeText(bitmap, BaseRecognitionModel)
-
     public suspend fun detectAndRecognizeText(
         bitmap: Bitmap,
-        recognitionModel: RecognitionModel,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
     ): List<OcrResult>
 
     /**
@@ -60,28 +56,24 @@ public interface AndroidOcrApi : OcrApi {
      * Recognizes text from the image at the specified [uri].
      *
      * @param uri The content URI of the image to be recognized.
+     * @param recognitionModel The recognition model and dictionary to use.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
-    public suspend fun recognizeText(uri: Uri): RecognitionResult =
-        recognizeText(uri, BaseRecognitionModel)
-
     public suspend fun recognizeText(
         uri: Uri,
-        recognitionModel: RecognitionModel,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
     ): RecognitionResult
 
     /**
      * Detects text regions and recognizes text in each region from the image at the specified [uri].
      *
      * @param uri The content URI of the image to perform full OCR on.
+     * @param recognitionModel The recognition model and dictionary to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
-    public suspend fun detectAndRecognizeText(uri: Uri): List<OcrResult> =
-        detectAndRecognizeText(uri, BaseRecognitionModel)
-
     public suspend fun detectAndRecognizeText(
         uri: Uri,
-        recognitionModel: RecognitionModel,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
     ): List<OcrResult>
 
     /**
@@ -96,27 +88,23 @@ public interface AndroidOcrApi : OcrApi {
      * Recognizes text from the provided OpenCV [mat].
      *
      * @param mat The OpenCV Mat image to recognize text from.
+     * @param recognitionModel The recognition model and dictionary to use.
      * @return A [RecognitionResult] containing the recognized text and confidence score.
      */
-    public suspend fun recognizeText(mat: Mat): RecognitionResult =
-        recognizeText(mat, BaseRecognitionModel)
-
     public suspend fun recognizeText(
         mat: Mat,
-        recognitionModel: RecognitionModel,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
     ): RecognitionResult
 
     /**
      * Detects text regions and recognizes text in each region of the provided OpenCV [mat].
      *
      * @param mat The OpenCV Mat image to perform full OCR on.
+     * @param recognitionModel The recognition model and dictionary to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
-    public suspend fun detectAndRecognizeText(mat: Mat): List<OcrResult> =
-        detectAndRecognizeText(mat, BaseRecognitionModel)
-
     public suspend fun detectAndRecognizeText(
         mat: Mat,
-        recognitionModel: RecognitionModel,
+        recognitionModel: RecognitionModel = BaseRecognitionModel,
     ): List<OcrResult>
 }

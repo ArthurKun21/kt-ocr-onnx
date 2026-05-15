@@ -4,8 +4,7 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import com.github.arthurkun.koo.imaging.CvImage
-import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
-import com.github.arthurkun.koo.recognition.RecognitionModelLoader
+import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -84,10 +83,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 internal class PaddleOcrRecognition(
     @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
-    private val modelLoader: RecognitionModelLoader = RecognitionModelLoader(
-        BaseRecognitionModel,
-        RecognitionModelCachePolicy.KEEP_IN_MEMORY,
-    ),
+    private val recognitionModel: RecognitionModel = BaseRecognitionModel,
 ) : AutoCloseable {
 
     private val dispatcher = Dispatchers.Default.limitedParallelism(1)
@@ -131,7 +127,7 @@ internal class PaddleOcrRecognition(
                 ortEnvRef.store(env)
 
                 // Load model from assets
-                val modelBytes = modelLoader.loadModelBytes()
+                val modelBytes = recognitionModel.loadModelBytes()
                 logcat(TAG) { "Model loaded, size: ${modelBytes.size} bytes" }
 
                 // Create session
@@ -173,13 +169,37 @@ internal class PaddleOcrRecognition(
      */
     private suspend fun loadDictionary(): Map<Int, String> {
         return try {
-            val charDict = mutableMapOf<Int, String>()
-            charDict.putAll(modelLoader.loadDictionary())
-            charDict
+            parseDictionary(recognitionModel.loadDictionaryBytes())
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, TAG) { "Failed to load dictionary: ${e.asLog()}" }
             throw OCRIOException("Failed to load recognition dictionary", cause = e)
         }
+    }
+
+    private fun parseDictionary(dictionaryBytes: ByteArray): Map<Int, String> {
+        val charDict = mutableMapOf<Int, String>()
+        // Index 0 is blank token for CTC decoding
+        charDict[0] = "blank"
+
+        var index = 1
+        dictionaryBytes.inputStream().buffered().reader().useLines { lines ->
+            lines.forEach { line ->
+                // Strip newlines and carriage returns like Python does
+                val char = line.trimEnd('\n', '\r')
+                if (char.isNotEmpty()) {
+                    charDict[index] = char
+                    index++
+                }
+            }
+        }
+
+        // Append space character at the end (use_space_char=True in PaddleOCR)
+        // Reference: BaseRecLabelDecode.__init__ in rec_postprocess.py
+        charDict[index] = " "
+
+        return charDict
     }
 
     /**
@@ -453,7 +473,6 @@ internal class PaddleOcrRecognition(
         }
 
         dictionaryRef.store(emptyMap())
-        modelLoader.close()
         isInitialized.store(false)
     }
 
