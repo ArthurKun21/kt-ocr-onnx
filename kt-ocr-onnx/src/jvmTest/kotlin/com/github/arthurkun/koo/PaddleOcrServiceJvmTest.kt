@@ -3,6 +3,8 @@ package com.github.arthurkun.koo
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.arthurkun.koo.imaging.NativeMat
+import com.github.arthurkun.koo.recognition.RecognitionModel
+import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
@@ -14,6 +16,16 @@ import kotlin.test.Test
  * Test assets are loaded from the JVM classpath resources.
  */
 class PaddleOcrServiceJvmTest : PaddleOcrServiceTestBase() {
+
+    override fun createPaddleOcrService(
+        recognitionModel: RecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy,
+    ): OcrApi {
+        return PaddleOcrService(
+            recognitionModel = recognitionModel,
+            recognitionModelCachePolicy = recognitionModelCachePolicy,
+        )
+    }
 
     override fun loadTestResourceBytes(path: String): ByteArray {
         val inputStream = requireNotNull(

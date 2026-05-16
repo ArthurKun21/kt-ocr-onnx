@@ -10,6 +10,7 @@ import com.github.arthurkun.koo.imaging.cvImageFromBitmap
 import com.github.arthurkun.koo.imaging.initOpenCV
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
+import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,15 +28,13 @@ import kotlin.concurrent.atomics.AtomicBoolean
  * Android-specific concerns like [Bitmap] and [Uri] conversion while delegating
  * the actual detection and recognition work to the respective engines.
  */
-public actual class PaddleOcrService actual constructor(
-    platformContext: Any?,
-    private val recognitionModel: RecognitionModel,
-    private val recognitionModelCachePolicy: RecognitionModelCachePolicy,
+public actual class PaddleOcrService public constructor(
+    platformContext: Context,
+    private val recognitionModel: RecognitionModel = BaseRecognitionModel,
+    private val recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
 ) : AndroidOcrApi {
 
-    private val context: Context = requireNotNull(platformContext as? Context) {
-        "Android PaddleOcrService requires a non-null Context as platformContext"
-    }
+    private val context: Context = platformContext
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isClosed = AtomicBoolean(false)

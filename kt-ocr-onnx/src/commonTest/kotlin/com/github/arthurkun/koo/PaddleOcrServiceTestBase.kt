@@ -30,15 +30,10 @@ abstract class PaddleOcrServiceTestBase {
      */
     abstract fun loadTestResourceBytes(path: String): ByteArray
 
-    protected open fun createPaddleOcrService(
+    protected abstract fun createPaddleOcrService(
         recognitionModel: RecognitionModel = BaseRecognitionModel,
         recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
-    ): OcrApi {
-        return PaddleOcrService(
-            recognitionModel = recognitionModel,
-            recognitionModelCachePolicy = recognitionModelCachePolicy,
-        )
-    }
+    ): OcrApi
 
     protected lateinit var paddleOcrService: OcrApi
 

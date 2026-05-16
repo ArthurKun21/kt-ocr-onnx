@@ -6,6 +6,7 @@ import com.github.arthurkun.koo.imaging.cropPerspective
 import com.github.arthurkun.koo.imaging.initOpenCV
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
+import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,10 +23,9 @@ import kotlin.concurrent.atomics.AtomicBoolean
  * This service acts as the public entry point for OCR operations, delegating
  * the actual detection and recognition work to the respective engines.
  */
-public actual class PaddleOcrService actual constructor(
-    @Suppress("UNUSED_PARAMETER") platformContext: Any?,
-    private val recognitionModel: RecognitionModel,
-    private val recognitionModelCachePolicy: RecognitionModelCachePolicy,
+public actual class PaddleOcrService public constructor(
+    private val recognitionModel: RecognitionModel = BaseRecognitionModel,
+    private val recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
 ) : JvmOcrApi {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
