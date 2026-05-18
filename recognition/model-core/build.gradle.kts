@@ -1,5 +1,8 @@
+import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
+
 plugins {
     id("koo.library.kmp")
+    id("koo.maven.publish")
 }
 
 kotlin {
@@ -7,5 +10,18 @@ kotlin {
 
     android {
         namespace = "com.github.arthurkun.koo.recognition.core"
+    }
+}
+
+mavenPublishing {
+    coordinates(
+        groupId = MAVEN_PUBLISH_GROUP_ID,
+        artifactId = "kt-ocr-onnx-recognition-model-core",
+        version = version.toString(),
+    )
+
+    pom {
+        name.set("Kt OCR ONNX Model Core")
+        description.set("Shared recognition model abstractions used by kt-ocr-onnx artifacts.")
     }
 }

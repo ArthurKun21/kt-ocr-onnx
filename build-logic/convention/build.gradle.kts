@@ -10,6 +10,7 @@ dependencies {
     implementation(libs.compose.compiler.gradle)
     implementation(libs.compose.gradle)
     implementation(libs.spotless.gradle)
+    implementation(libs.vanniktech.maven.publish.gradle)
 }
 
 gradlePlugin {
@@ -33,6 +34,10 @@ gradlePlugin {
         register("libraryKmpTests") {
             id = "koo.library.kmp.tests"
             implementationClass = "LibraryKmpTestsConventionPlugin"
+        }
+        register("mavenPublish") {
+            id = "koo.maven.publish"
+            implementationClass = "MavenPublishConventionPlugin"
         }
     }
 }

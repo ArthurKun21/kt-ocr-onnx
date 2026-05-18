@@ -1,6 +1,9 @@
+import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
+
 plugins {
     id("koo.library.kmp")
     id("koo.compose")
+    id("koo.maven.publish")
 }
 
 kotlin {
@@ -46,4 +49,17 @@ kotlin {
 
 compose.resources {
     packageOfResClass = "com.github.arthurkun.koo.detection.resources"
+}
+
+mavenPublishing {
+    coordinates(
+        groupId = MAVEN_PUBLISH_GROUP_ID,
+        artifactId = "kt-ocr-onnx-detection-core",
+        version = version.toString(),
+    )
+
+    pom {
+        name.set("Kt OCR ONNX Detection Runtime")
+        description.set("Internal text detection runtime used by kt-ocr-onnx artifacts.")
+    }
 }

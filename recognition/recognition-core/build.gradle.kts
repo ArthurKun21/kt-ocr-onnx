@@ -1,5 +1,8 @@
+import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
+
 plugins {
     id("koo.library.kmp")
+    id("koo.maven.publish")
 }
 
 kotlin {
@@ -35,5 +38,18 @@ kotlin {
                 implementation(libs.onnxruntime.jvm)
             }
         }
+    }
+}
+
+mavenPublishing {
+    coordinates(
+        groupId = MAVEN_PUBLISH_GROUP_ID,
+        artifactId = "kt-ocr-onnx-recognition-core",
+        version = version.toString(),
+    )
+
+    pom {
+        name.set("Kt OCR ONNX Recognition Core")
+        description.set("Internal text recognition runtime used by kt-ocr-onnx artifacts.")
     }
 }

@@ -1,6 +1,9 @@
+import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
+
 plugins {
     id("koo.library.kmp")
     id("koo.library.kmp.tests")
+    id("koo.maven.publish")
 }
 
 kotlin {
@@ -43,5 +46,18 @@ kotlin {
         getByName("androidDeviceTest") {
             resources.srcDir(sharedTestAssetsDir)
         }
+    }
+}
+
+mavenPublishing {
+    coordinates(
+        groupId = MAVEN_PUBLISH_GROUP_ID,
+        artifactId = "kt-ocr-onnx-detection",
+        version = version.toString(),
+    )
+
+    pom {
+        name.set("Kt OCR ONNX Detection")
+        description.set("Text detection API for kt-ocr-onnx using PaddleOCR v5 ONNX models.")
     }
 }
