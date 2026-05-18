@@ -26,6 +26,9 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.resources)
+            api(project(":kt-ocr-onnx-core"))
+            api(project(":detection"))
+            api(project(":recognition:recognition-core"))
             api(libs.kotlinx.io.core)
             api(project(":recognition:model-core"))
             api(project(":recognition:model-base"))

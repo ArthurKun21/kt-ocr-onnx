@@ -3,7 +3,6 @@ package com.github.arthurkun.koo
 import com.github.arthurkun.koo.imaging.CvImage
 import com.github.arthurkun.koo.imaging.NativeMat
 import com.github.arthurkun.koo.imaging.cropPerspective
-import com.github.arthurkun.koo.imaging.initOpenCV
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
@@ -31,11 +30,7 @@ public actual class PaddleOcrService public constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isClosed = AtomicBoolean(false)
 
-    init {
-        initOpenCV()
-    }
-
-    private val detection = PaddleOcrDetection(scope, DET_MODEL_PATH)
+    private val detection = PaddleOcrDetection(scope)
     private val recognitions = RecognitionModelManager(
         scope = scope,
         cachePolicy = recognitionModelCachePolicy,
