@@ -1,34 +1,45 @@
 # AGENTS.md
 
-## Build & Test
+## Build, lint, test
 
-- JVM tests: `./gradlew :kt-ocr-onnx:jvmTest`
-- Android device tests: `./gradlew :kt-ocr-onnx:connectedAndroidDeviceTest`
-- Lint/format: `./gradlew spotlessApply` (check: `./gradlew spotlessCheck`)
-- API dump (after public API changes): `./gradlew :kt-ocr-onnx:updateKotlinAbi`
-- JVM tests require `--enable-native-access=ALL-UNNAMED` JVM arg (already configured in `build.gradle.kts`).
+- JVM tests: `./gradlew :kt-ocr-onnx:jvmTest` (or `:kt-ocr-onnx-detection:jvmTest`,
+  `:kt-ocr-onnx-recognition:jvmTest`).
+- Single JVM test:
+  `./gradlew :kt-ocr-onnx:jvmTest --tests 'com.github.arthurkun.koo.OcrPipelineTest.testWholeImageBoxUsesImageBounds'`.
+- Android device tests: `./gradlew :kt-ocr-onnx:connectedAndroidDeviceTest`; host tests live under
+  `androidHostTest`.
+- Lint/format: `./gradlew spotlessCheck`; fix with `./gradlew spotlessApply`.
+- After public API changes in ABI-validated modules run `./gradlew :kt-ocr-onnx:updateKotlinAbi` (
+  same task pattern for detection/recognition API modules).
+- JVM tests need native access for OpenCV/ONNX; `--enable-native-access=ALL-UNNAMED` is already
+  configured where needed.
 
 ## Architecture
 
-- Kotlin Multiplatform library (Android + JVM) for OCR using PaddleOCR v5 ONNX models.
-- Uses two models: text detection (`PP-OCRv5_mobile_det.onnx`) and text recognition (`PP-OCRv5_mobile_rec.onnx`), bundled via Compose Resources in `src/commonMain/composeResources/files/base/`.
-- Single module `:kt-ocr-onnx` with source sets: `commonMain`, `androidMain`, `jvmMain`, `jvmCommonMain`, `commonTest`, `jvmTest`, `androidDeviceTest`, `androidHostTest`.
-- Shared test assets in `src/sharedTestAssets/` (shared between `jvmTest` and `androidDeviceTest`).
-- Public API surface:
-  - `OcrApi` — common interface with `suspend fun detectText(ByteArray): List<DetectedResults>`, `suspend fun recognizeText(ByteArray): RecognitionResult`, `suspend fun detectAndRecognizeText(ByteArray): List<OcrResult>`. Also has overloads for `Source`, `String` (path), and `Path`.
-  - `PaddleOcrService(platformContext: Any? = null)` — `expect`/`actual` class implementing `OcrApi`. On Android, pass a `Context`; on JVM, pass `null` or omit.
-  - `JvmOcrApi` — JVM-specific interface extending `OcrApi` with bytedeco `Mat` overloads.
-  - `AndroidOcrApi` — Android-specific interface extending `OcrApi` with `Bitmap`, `Uri`, and OpenCV `Mat` overloads.
-  - Data classes: `DetectedResults` (bounding quadrilateral + score), `RecognitionResult` (text + score), `OcrResult` (box + text + score), `BoxPoint` (x, y).
-  - `OCRException` hierarchy — `OCRInitializationException`, `OCRClosedException`, `OCRIOException`, `OCRImageDecodeException`, `OCRImageProcessingException`, `OCRInferenceException`, `OCRModelStateException`, and `OCRModelOutputException`.
-  - `CvImage` and `NativeMat` are **internal** — not part of the public API.
-- Internal implementation: `PaddleOcrDetectionBase` (abstract, in `jvmCommonMain`) with platform-specific `PaddleOcrDetection` subclasses; `PaddleOcrRecognition` (in `jvmCommonMain`); `NativeMat` (`expect`/`actual`) wraps OpenCV Mat.
-- Key deps: ONNX Runtime (android/jvm), OpenCV (`org.opencv:opencv` on Android, `org.bytedeco:opencv-platform` on JVM), Compose Resources for model files, kotlinx-coroutines, Clipper2-java for polygon operations.
-- Binary compatibility tracked via Kotlin Gradle plugin's built-in `abiValidation` (JVM target only; Android-specific APIs like `AndroidOcrApi` are not covered since they depend on Android SDK types unavailable in the JVM compilation).
+- Kotlin Multiplatform OCR library for Android + JVM using PaddleOCR v5 ONNX Runtime and OpenCV; no
+  app UI or database layer.
+- Public aggregator module `:kt-ocr-onnx` exposes `OcrApi`, `PaddleOcrService`, `JvmOcrApi`,
+  `AndroidOcrApi`, results, and `OCRException` types.
+- Split artifacts: `:kt-ocr-onnx-core` has shared models/imaging primitives;
+  `:kt-ocr-onnx-detection` and `:kt-ocr-onnx-recognition` expose standalone APIs.
+- Runtime internals live in `:detection`, `:recognition:recognition-core`,
+  `:recognition:model-core`, and `:recognition:model-base`.
+- Models/resources: detection ONNX in `detection/src/commonMain/composeResources/files/base/`;
+  recognition ONNX + dict in `recognition/model-base/src/commonMain/composeResources/files/`.
+- Source sets use `commonMain`, `androidMain`, `jvmMain`, and shared `jvmCommonMain`; shared test
+  image assets live in `kt-ocr-onnx/src/sharedTestAssets/`.
+- Platform boundaries use `expect`/`actual`; `NativeMat`/`CvImage` wrap platform OpenCV and should
+  remain internal implementation details unless intentionally promoted.
 
-## Code Style
+## Code style and conventions
 
-- Kotlin with `explicitApi()` — all public declarations need explicit visibility modifiers. Use `internal` for non-API symbols.
-- ktlint via Spotless; style: `intellij_idea`. Max line length: 120. Indent: 4 spaces. No wildcard imports. Trailing commas allowed.
-- Package: `com.github.arthurkun.koo` (imaging: `com.github.arthurkun.koo.imaging`).
-- Use `expect`/`actual` for platform-specific code. Prefer `suspend` functions for async work.
+- Follow `.editorconfig`: 4 spaces, UTF-8, final newline, trim trailing whitespace, Kotlin max line
+  length 120.
+- Kotlin uses `explicitApi()`; every public declaration needs explicit visibility/return types,
+  otherwise prefer `internal`.
+- Spotless/ktlint style is `intellij_idea`; no wildcard imports, trailing commas allowed, XML also
+  trimmed/newline-normalized.
+- Packages are rooted at `com.github.arthurkun.koo` (`.imaging`, `.recognition`, etc.); keep API
+  packages stable.
+- Prefer suspend APIs and structured resource cleanup (`try/finally`/`close`) around native
+  images/sessions; map failures to the existing `OCRException` hierarchy.
