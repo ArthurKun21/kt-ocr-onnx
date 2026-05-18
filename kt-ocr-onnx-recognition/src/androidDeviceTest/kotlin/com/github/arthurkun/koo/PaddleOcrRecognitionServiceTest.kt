@@ -19,9 +19,16 @@ import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Instrumented tests for PaddleOcrRecognitionService on Android.
+ *
+ * Tests the recognition-only wrapper using shared test assets.
+ * Extends [PaddleOcrRecognitionServiceTestBase] for shared test logic and adds
+ * Android-specific tests for Bitmap recognition.
+ */
 @RunWith(AndroidJUnit4::class)
 @OptIn(InternalKtOcrONNXApi::class)
-class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
+class PaddleOcrRecognitionServiceTest : PaddleOcrRecognitionServiceTestBase() {
     companion object {
         private lateinit var context: Context
 
@@ -37,11 +44,11 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
         return Thread.currentThread().contextClassLoader!!.getResourceAsStream(path)!!.readBytes()
     }
 
-    override fun createPaddleOcrService(
+    override fun createPaddleOcrRecognitionService(
         recognitionModel: RecognitionModel,
         recognitionModelCachePolicy: RecognitionModelCachePolicy,
-    ): OcrApi {
-        return PaddleOcrService(
+    ): RecognitionApi {
+        return PaddleOcrRecognitionService(
             platformContext = context,
             recognitionModel = recognitionModel,
             recognitionModelCachePolicy = recognitionModelCachePolicy,
@@ -50,7 +57,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
 
     @Before
     override fun setUp() {
-        paddleOcrService = createPaddleOcrService()
+        paddleOcrRecognitionService = createPaddleOcrRecognitionService()
     }
 
     @After
@@ -59,33 +66,33 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     }
 
     @Test
-    fun testDetectAndRecognizeTextFromTestImageBitmapUsesDefaultRecognitionModel() = runTest {
+    fun testRecognizeTextFromTestImageBitmapUsesDefaultRecognitionModel() = runTest {
         val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
 
         try {
-            val results = (paddleOcrService as AndroidOcrApi).detectAndRecognizeText(bitmap)
-            assertRecognizedTextMatchesBaseline(results)
-            Log.i(TAG, "Recognized text: '${results.joinToString(" ") { it.text }}'")
+            val result = (paddleOcrRecognitionService as AndroidRecognitionApi).recognizeText(bitmap)
+            assertRecognizedTextMatchesBaseline(result)
+            Log.i(TAG, "Recognized text: '${result.text}'")
         } finally {
             bitmap.recycle()
         }
     }
 
     @Test
-    fun testDetectAndRecognizeTextBitmapUsesExplicitRecognitionSession() = runTest {
+    fun testRecognizeTextBitmapUsesExplicitRecognitionSession() = runTest {
         val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
         val recognitionModel = CountingRecognitionModel()
-        val bitmapService = PaddleOcrService(
+        val bitmapService = PaddleOcrRecognitionService(
             platformContext = context,
             recognitionModel = recognitionModel,
         )
 
         try {
-            val results = (bitmapService as AndroidOcrApi).detectAndRecognizeText(bitmap, recognitionModel)
-            assertRecognizedTextMatchesBaseline(results)
+            val result = (bitmapService as AndroidRecognitionApi).recognizeText(bitmap, recognitionModel)
+            assertRecognizedTextMatchesBaseline(result)
             assertThat(recognitionModel.modelLoadCount).isEqualTo(1)
             assertThat(recognitionModel.dictionaryLoadCount).isEqualTo(1)
-            Log.i(TAG, "Recognized text: '${results.joinToString(" ") { it.text }}'")
+            Log.i(TAG, "Recognized text: '${result.text}'")
         } finally {
             bitmapService.close()
             bitmap.recycle()
@@ -102,4 +109,4 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     }
 }
 
-private const val TAG = "PaddleOcrServiceTest"
+private const val TAG = "PaddleOcrRecognitionServiceTest"

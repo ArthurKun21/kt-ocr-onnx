@@ -13,21 +13,9 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-/**
- * Abstract base class for PaddleOcrService tests.
- *
- * Provides shared test logic for both JVM and Android device tests.
- * Each platform implements [loadTestResourceBytes] to load test assets
- * from the appropriate location.
- */
+@OptIn(InternalKtOcrONNXApi::class)
 abstract class PaddleOcrServiceTestBase {
 
-    /**
-     * Loads test resource bytes from the platform-specific resource location.
-     *
-     * @param path The relative path to the test resource (e.g., "ocr/noble-phantasm-en.png")
-     * @return The raw bytes of the resource
-     */
     abstract fun loadTestResourceBytes(path: String): ByteArray
 
     protected abstract fun createPaddleOcrService(
@@ -39,6 +27,7 @@ abstract class PaddleOcrServiceTestBase {
 
     @BeforeTest
     open fun setUp() {
+        initOpenCV()
         paddleOcrService = createPaddleOcrService()
     }
 
@@ -52,61 +41,6 @@ abstract class PaddleOcrServiceTestBase {
         val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
         val results = paddleOcrService.detectAndRecognizeText(bytes)
         assertRecognizedTextMatchesBaseline(results)
-    }
-
-    @Test
-    fun testDetectAndRecognizeTextKeepsExplicitRecognitionSessionInMemory() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
-        val recognitionModel = CountingRecognitionModel()
-
-        val firstResults = paddleOcrService.detectAndRecognizeText(bytes, recognitionModel)
-        val secondResults = paddleOcrService.detectAndRecognizeText(bytes, recognitionModel)
-
-        assertRecognizedTextMatchesBaseline(firstResults)
-        assertRecognizedTextMatchesBaseline(secondResults)
-        assertThat(recognitionModel.modelLoadCount).isEqualTo(1)
-        assertThat(recognitionModel.dictionaryLoadCount).isEqualTo(1)
-    }
-
-    @Test
-    fun testDetectAndRecognizeTextLoadEachTimeCreatesNewRecognitionSession() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
-        val recognitionModel = CountingRecognitionModel()
-        val localService = createPaddleOcrService(
-            recognitionModel = recognitionModel,
-            recognitionModelCachePolicy = RecognitionModelCachePolicy.LOAD_EACH_TIME,
-        )
-
-        try {
-            val firstResults = localService.detectAndRecognizeText(bytes, recognitionModel)
-            val secondResults = localService.detectAndRecognizeText(bytes, recognitionModel)
-
-            assertRecognizedTextMatchesBaseline(firstResults)
-            assertRecognizedTextMatchesBaseline(secondResults)
-        } finally {
-            localService.close()
-        }
-
-        assertThat(recognitionModel.modelLoadCount).isEqualTo(2)
-        assertThat(recognitionModel.dictionaryLoadCount).isEqualTo(2)
-    }
-
-    @Test
-    fun testCloseRejectsFurtherRecognitionRequests() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
-        val recognitionModel = CountingRecognitionModel()
-        val localService = createPaddleOcrService(recognitionModel = recognitionModel)
-
-        val results = localService.detectAndRecognizeText(bytes, recognitionModel)
-        assertRecognizedTextMatchesBaseline(results)
-
-        localService.close()
-
-        assertFailsWith<OCRClosedException> {
-            localService.detectAndRecognizeText(bytes, recognitionModel)
-        }
-        assertThat(recognitionModel.modelLoadCount).isEqualTo(1)
-        assertThat(recognitionModel.dictionaryLoadCount).isEqualTo(1)
     }
 
     @Test

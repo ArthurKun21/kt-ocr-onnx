@@ -1,13 +1,17 @@
 package com.github.arthurkun.koo
 
 /**
- * JVM tests for PaddleOcrDetection.
+ * JVM tests for PaddleOcrDetectionService.
  *
- * Tests the PaddleOCR v5 detection model using shared test assets.
- * Extends [PaddleOcrDetectionTestBase] for shared test logic.
+ * Tests the detection-only wrapper using shared test assets.
+ * Extends [PaddleOcrDetectionServiceTestBase] for shared test logic.
  * Test assets are loaded from the JVM classpath resources.
  */
-class PaddleOcrDetectionJvmTest : PaddleOcrDetectionTestBase() {
+class PaddleOcrDetectionServiceJvmTest : PaddleOcrDetectionServiceTestBase() {
+
+    override fun createPaddleOcrDetectionService(): DetectionApi {
+        return PaddleOcrDetectionService()
+    }
 
     override fun loadTestResourceBytes(path: String): ByteArray {
         val inputStream = requireNotNull(

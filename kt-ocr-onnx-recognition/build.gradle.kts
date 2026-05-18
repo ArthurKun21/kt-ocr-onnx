@@ -1,5 +1,6 @@
 plugins {
     id("koo.library.kmp")
+    id("koo.library.kmp.tests")
 }
 
 kotlin {
@@ -24,6 +25,16 @@ kotlin {
 
         jvmMain.dependencies {
             implementation(libs.opencv.jvm)
+        }
+
+        val sharedTestAssetsDir = "../kt-ocr-onnx/src/sharedTestAssets"
+
+        jvmTest {
+            resources.srcDir(sharedTestAssetsDir)
+        }
+
+        getByName("androidDeviceTest") {
+            resources.srcDir(sharedTestAssetsDir)
         }
     }
 }

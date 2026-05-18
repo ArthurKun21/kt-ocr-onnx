@@ -7,37 +7,36 @@ import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEmpty
 import com.github.arthurkun.koo.imaging.CvImage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 /**
- * Abstract base class for PaddleOcrDetection tests.
+ * Abstract base class for PaddleOcrDetectionService tests.
  *
  * Provides shared test logic for both JVM and Android device tests.
  * Each platform implements [loadTestResourceBytes] to load test assets
  * from the appropriate location.
  */
-abstract class PaddleOcrDetectionTestBase {
+@OptIn(InternalKtOcrONNXApi::class)
+abstract class PaddleOcrDetectionServiceTestBase {
 
     abstract fun loadTestResourceBytes(path: String): ByteArray
 
-    private lateinit var detection: PaddleOcrDetection
-    protected lateinit var testScope: CoroutineScope
+    protected abstract fun createPaddleOcrDetectionService(): DetectionApi
+
+    private lateinit var detectionService: DetectionApi
 
     @BeforeTest
     open fun setUp() {
-        testScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        detection = PaddleOcrDetection(testScope)
+        initOpenCV()
+        detectionService = createPaddleOcrDetectionService()
     }
 
     @AfterTest
     open fun tearDown() {
-        detection.close()
+        detectionService.close()
     }
 
     private suspend fun loadTestImage(path: String): CvImage {
@@ -52,18 +51,16 @@ abstract class PaddleOcrDetectionTestBase {
 
     @Test
     fun testDetectReturnsBoxes() = runTest {
-        val image = loadTestImage("ocr/noble-phantasm-en.png")
-        val boxes = detection.detect(image)
+        val boxes = detectionService.detectText(loadTestResourceBytes(TEST_IMAGE_PATH))
         assertThat(boxes).isNotEmpty()
-        image.close()
     }
 
     @Test
     fun testDetectedBoxesHaveValidCoordinates() = runTest {
-        val image = loadTestImage("ocr/noble-phantasm-en.png")
+        val image = loadTestImage(TEST_IMAGE_PATH)
         val w = image.width
         val h = image.height
-        val boxes = detection.detect(image)
+        val boxes = detectionService.detectText(loadTestResourceBytes(TEST_IMAGE_PATH))
 
         assertThat(boxes).isNotEmpty()
         assertThat(boxes).each { box ->
@@ -73,9 +70,12 @@ abstract class PaddleOcrDetectionTestBase {
                 point.transform { it.y }.isGreaterThanOrEqualTo(0)
                 point.transform { it.y }.isLessThanOrEqualTo(h)
             }
-            box.transform { it.score }.isGreaterThan(DET_BOX_THRESH)
+            box.transform { it.score }.isGreaterThan(DETECTION_BOX_THRESHOLD)
         }
 
         image.close()
     }
 }
+
+private const val TEST_IMAGE_PATH = "ocr/noble-phantasm-en.png"
+private const val DETECTION_BOX_THRESHOLD = 0.6f
