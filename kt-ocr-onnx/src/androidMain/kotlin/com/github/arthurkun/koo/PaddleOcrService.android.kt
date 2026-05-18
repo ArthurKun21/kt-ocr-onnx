@@ -8,10 +8,14 @@ import com.github.arthurkun.koo.imaging.NativeMat
 import com.github.arthurkun.koo.imaging.cropPerspective
 import com.github.arthurkun.koo.imaging.cvImageFromBitmap
 import com.github.arthurkun.koo.imaging.initOpenCV
+import com.github.arthurkun.koo.recognition.RecognitionModel
+import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
+import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import logcat.logcat
 import org.opencv.core.Mat
 import kotlin.concurrent.atomics.AtomicBoolean
@@ -24,13 +28,13 @@ import kotlin.concurrent.atomics.AtomicBoolean
  * Android-specific concerns like [Bitmap] and [Uri] conversion while delegating
  * the actual detection and recognition work to the respective engines.
  */
-public actual class PaddleOcrService actual constructor(
-    platformContext: Any?,
+public actual class PaddleOcrService public constructor(
+    platformContext: Context,
+    private val recognitionModel: RecognitionModel = BaseRecognitionModel,
+    private val recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
 ) : AndroidOcrApi {
 
-    private val context: Context = requireNotNull(platformContext as? Context) {
-        "Android PaddleOcrService requires a non-null Context as platformContext"
-    }
+    private val context: Context = platformContext
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isClosed = AtomicBoolean(false)
@@ -40,70 +44,137 @@ public actual class PaddleOcrService actual constructor(
     }
 
     private val detection = PaddleOcrDetection(scope, DET_MODEL_PATH)
-    private val recognition = PaddleOcrRecognition(scope, MODEL_PATH, DICT_PATH)
+    private val recognitions = RecognitionModelManager(
+        scope = scope,
+        cachePolicy = recognitionModelCachePolicy,
+        isOpen = { !isClosed.load() },
+    )
 
     actual override suspend fun detectText(byteArray: ByteArray): List<DetectedResults> {
         return withByteArrayImage(byteArray) { detectTextInternal(it) }
     }
 
-    actual override suspend fun recognizeText(byteArray: ByteArray): RecognitionResult {
-        return withByteArrayImage(byteArray) { recognizeTextInternal(it) }
+    actual override suspend fun recognizeText(
+        byteArray: ByteArray,
+        recognitionModel: RecognitionModel,
+    ): RecognitionResult {
+        return recognitions.withRecognition(recognitionModel) { recognition ->
+            withByteArrayImage(byteArray) { recognizeTextInternal(it, recognition) }
+        }
     }
 
-    actual override suspend fun detectAndRecognizeText(byteArray: ByteArray): List<OcrResult> {
-        return withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it) }
+    actual override suspend fun detectAndRecognizeText(
+        byteArray: ByteArray,
+        recognitionModel: RecognitionModel,
+    ): List<OcrResult> {
+        return recognitions.withRecognition(recognitionModel) { recognition ->
+            withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it, recognition) }
+        }
     }
 
     override suspend fun detectText(bitmap: Bitmap): List<DetectedResults> {
         return withBitmapImage(bitmap) { detectTextInternal(it) }
     }
 
-    override suspend fun recognizeText(bitmap: Bitmap): RecognitionResult {
-        return withBitmapImage(bitmap) { recognizeTextInternal(it) }
+    public suspend fun recognizeText(bitmap: Bitmap): RecognitionResult {
+        return recognizeText(bitmap, recognitionModel)
     }
 
-    override suspend fun detectAndRecognizeText(bitmap: Bitmap): List<OcrResult> {
-        return withBitmapImage(bitmap) { detectAndRecognizeTextInternal(it) }
+    override suspend fun recognizeText(
+        bitmap: Bitmap,
+        recognitionModel: RecognitionModel,
+    ): RecognitionResult {
+        return recognitions.withRecognition(recognitionModel) { recognition ->
+            withBitmapImage(bitmap) { recognizeTextInternal(it, recognition) }
+        }
+    }
+
+    override suspend fun detectAndRecognizeText(
+        bitmap: Bitmap,
+        recognitionModel: RecognitionModel,
+    ): List<OcrResult> {
+        return recognitions.withRecognition(recognitionModel) { recognition ->
+            withBitmapImage(bitmap) { detectAndRecognizeTextInternal(it, recognition) }
+        }
+    }
+
+    public suspend fun detectAndRecognizeText(bitmap: Bitmap): List<OcrResult> {
+        return detectAndRecognizeText(bitmap, recognitionModel)
     }
 
     override suspend fun detectText(uri: Uri): List<DetectedResults> {
         return detectText(readUriBytes(uri))
     }
 
-    override suspend fun recognizeText(uri: Uri): RecognitionResult {
-        return recognizeText(readUriBytes(uri))
+    public suspend fun recognizeText(uri: Uri): RecognitionResult {
+        return recognizeText(uri, recognitionModel)
     }
 
-    override suspend fun detectAndRecognizeText(uri: Uri): List<OcrResult> {
-        return detectAndRecognizeText(readUriBytes(uri))
+    override suspend fun recognizeText(
+        uri: Uri,
+        recognitionModel: RecognitionModel,
+    ): RecognitionResult {
+        return recognizeText(readUriBytes(uri), recognitionModel)
+    }
+
+    override suspend fun detectAndRecognizeText(
+        uri: Uri,
+        recognitionModel: RecognitionModel,
+    ): List<OcrResult> {
+        return detectAndRecognizeText(readUriBytes(uri), recognitionModel)
+    }
+
+    public suspend fun detectAndRecognizeText(uri: Uri): List<OcrResult> {
+        return detectAndRecognizeText(uri, recognitionModel)
     }
 
     override suspend fun detectText(mat: Mat): List<DetectedResults> {
         return withMatImage(mat) { detectTextInternal(it) }
     }
 
-    override suspend fun recognizeText(mat: Mat): RecognitionResult {
-        return withMatImage(mat) { recognizeTextInternal(it) }
+    public suspend fun recognizeText(mat: Mat): RecognitionResult {
+        return recognizeText(mat, recognitionModel)
     }
 
-    override suspend fun detectAndRecognizeText(mat: Mat): List<OcrResult> {
-        return withMatImage(mat) { detectAndRecognizeTextInternal(it) }
+    override suspend fun recognizeText(
+        mat: Mat,
+        recognitionModel: RecognitionModel,
+    ): RecognitionResult {
+        return recognitions.withRecognition(recognitionModel) { recognition ->
+            withMatImage(mat) { recognizeTextInternal(it, recognition) }
+        }
+    }
+
+    override suspend fun detectAndRecognizeText(
+        mat: Mat,
+        recognitionModel: RecognitionModel,
+    ): List<OcrResult> {
+        return recognitions.withRecognition(recognitionModel) { recognition ->
+            withMatImage(mat) { detectAndRecognizeTextInternal(it, recognition) }
+        }
+    }
+
+    public suspend fun detectAndRecognizeText(mat: Mat): List<OcrResult> {
+        return detectAndRecognizeText(mat, recognitionModel)
     }
 
     private suspend fun detectTextInternal(image: CvImage): List<DetectedResults> {
         return detection.detect(image)
     }
 
-    private suspend fun recognizeTextInternal(image: CvImage): RecognitionResult {
+    private suspend fun recognizeTextInternal(image: CvImage, recognition: PaddleOcrRecognition): RecognitionResult {
         return recognition.detectText(image)
     }
 
-    private suspend fun detectAndRecognizeTextInternal(image: CvImage): List<OcrResult> {
+    private suspend fun detectAndRecognizeTextInternal(
+        image: CvImage,
+        recognition: PaddleOcrRecognition,
+    ): List<OcrResult> {
         val nativeMat = image as NativeMat
         return runDetectAndRecognizePipeline(
             image = image,
             detectText = ::detectTextInternal,
-            recognizeText = ::recognizeTextInternal,
+            recognizeText = { croppedImage -> recognizeTextInternal(croppedImage, recognition) },
             cropFromBox = { box -> nativeMat.cropPerspective(box) },
             log = { message -> logcat(TAG) { message } },
         )
@@ -161,7 +232,9 @@ public actual class PaddleOcrService actual constructor(
         }
 
         detection.close()
-        recognition.close()
+        runBlocking {
+            recognitions.close()
+        }
         scope.cancel()
     }
 }

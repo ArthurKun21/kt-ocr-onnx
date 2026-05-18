@@ -27,6 +27,8 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.resources)
             api(libs.kotlinx.io.core)
+            api(project(":recognition:model-core"))
+            api(project(":recognition:model-base"))
         }
 
         val jvmCommonMain by creating {

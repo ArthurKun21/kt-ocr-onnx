@@ -7,11 +7,12 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import assertk.assertThat
-import assertk.assertions.contains
+import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
-import assertk.assertions.isNotEmpty
 import assertk.assertions.isNotNull
 import com.github.arthurkun.koo.imaging.initOpenCV
+import com.github.arthurkun.koo.recognition.RecognitionModel
+import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -43,9 +44,20 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
         return Thread.currentThread().contextClassLoader!!.getResourceAsStream(path)!!.readBytes()
     }
 
+    override fun createPaddleOcrService(
+        recognitionModel: RecognitionModel,
+        recognitionModelCachePolicy: RecognitionModelCachePolicy,
+    ): OcrApi {
+        return PaddleOcrService(
+            platformContext = context,
+            recognitionModel = recognitionModel,
+            recognitionModelCachePolicy = recognitionModelCachePolicy,
+        )
+    }
+
     @Before
     override fun setUp() {
-        paddleOcrService = PaddleOcrService(platformContext = context)
+        paddleOcrService = createPaddleOcrService()
     }
 
     @After
@@ -54,17 +66,37 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     }
 
     @Test
-    fun testDetectAndRecognizeTextFromTestImageBitmap() = runTest {
-        val bitmap = loadImageBitmap("ocr/noble-phantasm-en.png")
-        val results = (paddleOcrService as AndroidOcrApi).detectAndRecognizeText(bitmap)
-        assertThat(results).isNotEmpty()
-        val combinedText = results.joinToString(" ") { it.text }
-        val normalized = combinedText.replace(Regex("\\s+"), " ").trim()
-        assertThat(normalized).isNotEmpty()
-        assertThat(normalized).contains("Gate of Skye")
-        assertThat(normalized).contains("Lv")
-        Log.i(TAG, "Recognized text: '$combinedText'")
-        bitmap.recycle()
+    fun testDetectAndRecognizeTextFromTestImageBitmapUsesDefaultRecognitionModel() = runTest {
+        val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
+
+        try {
+            val results = (paddleOcrService as AndroidOcrApi).detectAndRecognizeText(bitmap)
+            assertRecognizedTextMatchesBaseline(results)
+            Log.i(TAG, "Recognized text: '${results.joinToString(" ") { it.text }}'")
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
+    fun testDetectAndRecognizeTextBitmapUsesExplicitRecognitionSession() = runTest {
+        val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
+        val recognitionModel = CountingRecognitionModel()
+        val bitmapService = PaddleOcrService(
+            platformContext = context,
+            recognitionModel = recognitionModel,
+        )
+
+        try {
+            val results = (bitmapService as AndroidOcrApi).detectAndRecognizeText(bitmap, recognitionModel)
+            assertRecognizedTextMatchesBaseline(results)
+            assertThat(recognitionModel.modelLoadCount).isEqualTo(1)
+            assertThat(recognitionModel.dictionaryLoadCount).isEqualTo(1)
+            Log.i(TAG, "Recognized text: '${results.joinToString(" ") { it.text }}'")
+        } finally {
+            bitmapService.close()
+            bitmap.recycle()
+        }
     }
 
     private fun loadImageBitmap(path: String): Bitmap {

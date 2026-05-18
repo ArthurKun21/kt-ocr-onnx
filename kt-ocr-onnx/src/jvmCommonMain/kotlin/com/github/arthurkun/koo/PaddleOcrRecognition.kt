@@ -4,7 +4,8 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import com.github.arthurkun.koo.imaging.CvImage
-import com.github.arthurkun.koo.resources.Res
+import com.github.arthurkun.koo.recognition.RecognitionModel
+import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -82,8 +83,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 internal class PaddleOcrRecognition(
     @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
-    private val modelPath: String = MODEL_PATH,
-    private val dictPath: String = DICT_PATH,
+    private val recognitionModel: RecognitionModel = BaseRecognitionModel,
 ) : AutoCloseable {
 
     private val dispatcher = Dispatchers.Default.limitedParallelism(1)
@@ -127,7 +127,7 @@ internal class PaddleOcrRecognition(
                 ortEnvRef.store(env)
 
                 // Load model from assets
-                val modelBytes = Res.readBytes(modelPath)
+                val modelBytes = recognitionModel.loadModelBytes()
                 logcat(TAG) { "Model loaded, size: ${modelBytes.size} bytes" }
 
                 // Create session
@@ -169,31 +169,37 @@ internal class PaddleOcrRecognition(
      */
     private suspend fun loadDictionary(): Map<Int, String> {
         return try {
-            val charDict = mutableMapOf<Int, String>()
-            // Index 0 is blank token for CTC decoding
-            charDict[0] = "blank"
-
-            var index = 1
-            Res.readBytes(dictPath).inputStream().buffered().reader().useLines { lines ->
-                lines.forEach { line ->
-                    // Strip newlines and carriage returns like Python does
-                    val char = line.trimEnd('\n', '\r')
-                    if (char.isNotEmpty()) {
-                        charDict[index] = char
-                        index++
-                    }
-                }
-            }
-
-            // Append space character at the end (use_space_char=True in PaddleOCR)
-            // Reference: BaseRecLabelDecode.__init__ in rec_postprocess.py
-            charDict[index] = " "
-
-            charDict
+            parseDictionary(recognitionModel.loadDictionaryBytes())
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, TAG) { "Failed to load dictionary: ${e.asLog()}" }
             throw OCRIOException("Failed to load recognition dictionary", cause = e)
         }
+    }
+
+    private fun parseDictionary(dictionaryBytes: ByteArray): Map<Int, String> {
+        val charDict = mutableMapOf<Int, String>()
+        // Index 0 is blank token for CTC decoding
+        charDict[0] = "blank"
+
+        var index = 1
+        dictionaryBytes.inputStream().buffered().reader().useLines { lines ->
+            lines.forEach { line ->
+                // Strip newlines and carriage returns like Python does
+                val char = line.trimEnd('\n', '\r')
+                if (char.isNotEmpty()) {
+                    charDict[index] = char
+                    index++
+                }
+            }
+        }
+
+        // Append space character at the end (use_space_char=True in PaddleOCR)
+        // Reference: BaseRecLabelDecode.__init__ in rec_postprocess.py
+        charDict[index] = " "
+
+        return charDict
     }
 
     /**
@@ -251,6 +257,24 @@ internal class PaddleOcrRecognition(
                     }
                 }
             }
+        }
+    }
+
+    suspend fun closeSuspending() {
+        if (!isClosed.compareAndSet(false, true)) {
+            return
+        }
+
+        try {
+            mutex.withLock {
+                withTimeout(15.seconds) {
+                    withContext(dispatcher) {
+                        cleanup()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, TAG) { "Error closing PaddleOCR recognition: ${e.asLog()}" }
         }
     }
 
@@ -453,20 +477,8 @@ internal class PaddleOcrRecognition(
     }
 
     override fun close() {
-        if (!isClosed.compareAndSet(false, true)) {
-            return
-        }
-
-        try {
-            runBlocking {
-                mutex.withLock {
-                    withTimeout(15.seconds) {
-                        cleanup()
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            logcat(LogPriority.ERROR, TAG) { "Error closing PaddleOCR recognition: ${e.asLog()}" }
+        runBlocking {
+            closeSuspending()
         }
     }
 }

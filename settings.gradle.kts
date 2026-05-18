@@ -33,3 +33,5 @@ plugins {
 
 rootProject.name = "kt-ocr-onnx"
 include(":kt-ocr-onnx")
+include(":recognition:model-core")
+include(":recognition:model-base")
