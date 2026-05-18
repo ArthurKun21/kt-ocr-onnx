@@ -8,6 +8,10 @@ kotlin {
 
     android {
         namespace = "com.github.arthurkun.koo.recognition.api"
+
+        optimization {
+            consumerKeepRules.file("consumer-rules.pro")
+        }
     }
 
     sourceSets {
