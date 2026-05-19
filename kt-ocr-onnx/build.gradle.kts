@@ -61,21 +61,19 @@ kotlin {
             }
         }
 
-        // Share test assets between jvmTest and androidDeviceTest.
-        // These are NOT compose component resources (those live in commonMain/composeResources).
+        // Share test assets with jvmTest via classpath resources.
         val sharedTestAssetsDir = "src/sharedTestAssets"
 
         jvmTest {
-            resources.srcDir(sharedTestAssetsDir)
-        }
-
-        getByName("androidDeviceTest") {
             resources.srcDir(sharedTestAssetsDir)
         }
     }
 }
 
 tasks {
+    matching { it.name == "copyAndroidDeviceTestComposeResourcesToAndroidAssets" }.configureEach {
+        enabled = false
+    }
 
     // when running with jvm test with jetbrains runtime jdk 25
     withType<Test> {

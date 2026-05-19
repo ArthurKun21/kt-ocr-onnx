@@ -41,7 +41,9 @@ class PaddleOcrRecognitionServiceTest : PaddleOcrRecognitionServiceTestBase() {
     }
 
     override fun loadTestResourceBytes(path: String): ByteArray {
-        return Thread.currentThread().contextClassLoader!!.getResourceAsStream(path)!!.readBytes()
+        return InstrumentationRegistry.getInstrumentation().context.assets
+            .open("$ANDROID_TEST_ASSET_PREFIX/$path")
+            .use { it.readBytes() }
     }
 
     override fun createPaddleOcrRecognitionService(
@@ -110,3 +112,5 @@ class PaddleOcrRecognitionServiceTest : PaddleOcrRecognitionServiceTestBase() {
 }
 
 private const val TAG = "PaddleOcrRecognitionServiceTest"
+private const val ANDROID_TEST_ASSET_PREFIX =
+    "composeResources/com.github.arthurkun.koo.recognition.base.resources/files"
