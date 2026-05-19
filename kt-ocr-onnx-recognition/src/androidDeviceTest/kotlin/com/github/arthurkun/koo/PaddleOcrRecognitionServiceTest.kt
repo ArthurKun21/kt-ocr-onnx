@@ -13,12 +13,12 @@ import assertk.assertions.isNotNull
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import kotlinx.coroutines.test.runTest
-import java.io.FileNotFoundException
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.FileNotFoundException
 
 /**
  * Instrumented tests for PaddleOcrRecognitionService on Android.
