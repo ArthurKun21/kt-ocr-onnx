@@ -8,6 +8,7 @@ import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
+@OptIn(InternalKtOcrONNXApi::class)
 class PaddleOcrServiceJvmTest : PaddleOcrServiceTestBase() {
 
     override fun createPaddleOcrService(

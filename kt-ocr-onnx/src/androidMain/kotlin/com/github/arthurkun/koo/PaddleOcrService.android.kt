@@ -6,7 +6,9 @@ import android.net.Uri
 import com.github.arthurkun.koo.imaging.CvImage
 import com.github.arthurkun.koo.imaging.NativeMat
 import com.github.arthurkun.koo.imaging.cropPerspective
-import com.github.arthurkun.koo.imaging.cvImageFromBitmap
+import com.github.arthurkun.koo.imaging.withRgbCvImageFromBitmap
+import com.github.arthurkun.koo.imaging.withRgbCvImageFromByteArray
+import com.github.arthurkun.koo.imaging.withRgbCvImageFromMat
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
@@ -27,6 +29,7 @@ import kotlin.concurrent.atomics.AtomicBoolean
  * Android-specific concerns like [Bitmap] and [Uri] conversion while delegating
  * the actual detection and recognition work to the respective engines.
  */
+@OptIn(InternalKtOcrONNXApi::class)
 public actual class PaddleOcrService public constructor(
     platformContext: Context,
     private val recognitionModel: RecognitionModel = BaseRecognitionModel,
@@ -46,7 +49,7 @@ public actual class PaddleOcrService public constructor(
     )
 
     actual override suspend fun detectText(byteArray: ByteArray): List<DetectedResults> {
-        return withByteArrayImage(byteArray) { detectTextInternal(it) }
+        return withRgbCvImageFromByteArray(byteArray) { detectTextInternal(it) }
     }
 
     actual override suspend fun recognizeText(
@@ -54,7 +57,7 @@ public actual class PaddleOcrService public constructor(
         recognitionModel: RecognitionModel,
     ): RecognitionResult {
         return recognitions.withRecognition(recognitionModel) { recognition ->
-            withByteArrayImage(byteArray) { recognizeTextInternal(it, recognition) }
+            withRgbCvImageFromByteArray(byteArray) { recognizeTextInternal(it, recognition) }
         }
     }
 
@@ -63,12 +66,12 @@ public actual class PaddleOcrService public constructor(
         recognitionModel: RecognitionModel,
     ): List<OcrResult> {
         return recognitions.withRecognition(recognitionModel) { recognition ->
-            withByteArrayImage(byteArray) { detectAndRecognizeTextInternal(it, recognition) }
+            withRgbCvImageFromByteArray(byteArray) { detectAndRecognizeTextInternal(it, recognition) }
         }
     }
 
     override suspend fun detectText(bitmap: Bitmap): List<DetectedResults> {
-        return withBitmapImage(bitmap) { detectTextInternal(it) }
+        return withRgbCvImageFromBitmap(bitmap) { detectTextInternal(it) }
     }
 
     public suspend fun recognizeText(bitmap: Bitmap): RecognitionResult {
@@ -80,7 +83,7 @@ public actual class PaddleOcrService public constructor(
         recognitionModel: RecognitionModel,
     ): RecognitionResult {
         return recognitions.withRecognition(recognitionModel) { recognition ->
-            withBitmapImage(bitmap) { recognizeTextInternal(it, recognition) }
+            withRgbCvImageFromBitmap(bitmap) { recognizeTextInternal(it, recognition) }
         }
     }
 
@@ -89,7 +92,7 @@ public actual class PaddleOcrService public constructor(
         recognitionModel: RecognitionModel,
     ): List<OcrResult> {
         return recognitions.withRecognition(recognitionModel) { recognition ->
-            withBitmapImage(bitmap) { detectAndRecognizeTextInternal(it, recognition) }
+            withRgbCvImageFromBitmap(bitmap) { detectAndRecognizeTextInternal(it, recognition) }
         }
     }
 
@@ -124,7 +127,7 @@ public actual class PaddleOcrService public constructor(
     }
 
     override suspend fun detectText(mat: Mat): List<DetectedResults> {
-        return withMatImage(mat) { detectTextInternal(it) }
+        return withRgbCvImageFromMat(mat) { detectTextInternal(it) }
     }
 
     public suspend fun recognizeText(mat: Mat): RecognitionResult {
@@ -136,7 +139,7 @@ public actual class PaddleOcrService public constructor(
         recognitionModel: RecognitionModel,
     ): RecognitionResult {
         return recognitions.withRecognition(recognitionModel) { recognition ->
-            withMatImage(mat) { recognizeTextInternal(it, recognition) }
+            withRgbCvImageFromMat(mat) { recognizeTextInternal(it, recognition) }
         }
     }
 
@@ -145,7 +148,7 @@ public actual class PaddleOcrService public constructor(
         recognitionModel: RecognitionModel,
     ): List<OcrResult> {
         return recognitions.withRecognition(recognitionModel) { recognition ->
-            withMatImage(mat) { detectAndRecognizeTextInternal(it, recognition) }
+            withRgbCvImageFromMat(mat) { detectAndRecognizeTextInternal(it, recognition) }
         }
     }
 
@@ -173,45 +176,6 @@ public actual class PaddleOcrService public constructor(
             cropFromBox = { box -> nativeMat.cropPerspective(box) },
             log = { message -> logcat(TAG) { message } },
         )
-    }
-
-    private suspend fun <T> withByteArrayImage(byteArray: ByteArray, block: suspend (CvImage) -> T): T {
-        val image = CvImage.fromByteArray(byteArray, isColor = true, tag = "ocr_input")
-        return try {
-            val rgbImage = image.toRgbCvImage()
-            try {
-                block(rgbImage)
-            } finally {
-                rgbImage.close()
-            }
-        } finally {
-            image.close()
-        }
-    }
-
-    private suspend fun <T> withBitmapImage(bitmap: Bitmap, block: suspend (CvImage) -> T): T {
-        val image = cvImageFromBitmap(bitmap, "ocr_input")
-        return try {
-            val rgbImage = image.toRgbCvImage()
-            try {
-                block(rgbImage)
-            } finally {
-                rgbImage.close()
-            }
-        } finally {
-            image.close()
-        }
-    }
-
-    private suspend fun <T> withMatImage(mat: Mat, block: suspend (CvImage) -> T): T {
-        val image = NativeMat(mat, "ocr_input")
-        val rgbImage = image.toRgbCvImage()
-        return try {
-            block(rgbImage)
-        } finally {
-            rgbImage.close()
-            // Do not close the original NativeMat — the caller owns the Mat
-        }
     }
 
     private fun readUriBytes(uri: Uri): ByteArray {

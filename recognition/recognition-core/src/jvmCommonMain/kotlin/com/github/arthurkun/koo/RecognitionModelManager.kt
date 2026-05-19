@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+@InternalKtOcrONNXApi
 public class RecognitionModelManager public constructor(
     private val scope: CoroutineScope,
     private val cachePolicy: RecognitionModelCachePolicy,

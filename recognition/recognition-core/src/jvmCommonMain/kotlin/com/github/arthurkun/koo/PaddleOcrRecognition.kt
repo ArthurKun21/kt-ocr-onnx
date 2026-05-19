@@ -80,6 +80,7 @@ import kotlin.time.Duration.Companion.seconds
  * - **Output shape**: (1, sequence_length, num_classes)
  * - **Output**: Log probabilities for each character class at each timestep
  */
+@InternalKtOcrONNXApi
 public class PaddleOcrRecognition public constructor(
     @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
     private val recognitionModel: RecognitionModel,

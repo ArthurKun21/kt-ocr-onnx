@@ -15,6 +15,7 @@ import kotlin.test.Test
  * Extends [PaddleOcrRecognitionServiceTestBase] for shared test logic.
  * Test assets are loaded from the JVM classpath resources.
  */
+@OptIn(InternalKtOcrONNXApi::class)
 class PaddleOcrRecognitionServiceJvmTest : PaddleOcrRecognitionServiceTestBase() {
 
     override fun createPaddleOcrRecognitionService(

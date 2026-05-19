@@ -10,6 +10,7 @@ private data class ReadingRow(
     val boxes: MutableList<DetectedResults>,
 )
 
+@OptIn(InternalKtOcrONNXApi::class)
 internal suspend fun runDetectAndRecognizePipeline(
     image: CvImage,
     detectText: suspend (CvImage) -> List<DetectedResults>,
@@ -93,6 +94,7 @@ internal fun List<DetectedResults>.sortedForReadingOrder(): List<DetectedResults
         .flatMap { row -> row.boxes.sortedBy { it.minX() } }
 }
 
+@OptIn(InternalKtOcrONNXApi::class)
 internal fun wholeImageBox(image: CvImage): DetectedResults {
     return DetectedResults(
         points = listOf(

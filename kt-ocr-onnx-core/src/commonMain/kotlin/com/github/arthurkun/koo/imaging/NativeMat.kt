@@ -1,5 +1,7 @@
 package com.github.arthurkun.koo.imaging
 
+import com.github.arthurkun.koo.InternalKtOcrONNXApi
+
 /**
  * Platform-agnostic wrapper for native image matrix operations.
  * This expect class is implemented differently on each platform:
@@ -8,6 +10,7 @@ package com.github.arthurkun.koo.imaging
  *
  * NativeMat is internal to the module. External code should use [CvImage] instead.
  */
+@InternalKtOcrONNXApi
 public expect class NativeMat : CvImage {
     public override val tag: String
 

@@ -61,10 +61,14 @@ kotlin {
             }
         }
 
-        // Share test assets with jvmTest via classpath resources.
+        // Share test assets with jvmTest via classpath resources and Android device tests via assets.
         val sharedTestAssetsDir = "src/sharedTestAssets"
 
         jvmTest {
+            resources.srcDir(sharedTestAssetsDir)
+        }
+
+        getByName("androidDeviceTest") {
             resources.srcDir(sharedTestAssetsDir)
         }
     }

@@ -4,6 +4,7 @@ import com.github.arthurkun.koo.imaging.CvImage
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+@OptIn(InternalKtOcrONNXApi::class)
 class OcrPipelineTest {
 
     @Test
@@ -48,6 +49,7 @@ class OcrPipelineTest {
     }
 }
 
+@OptIn(InternalKtOcrONNXApi::class)
 private class FakeCvImage(
     override val width: Int,
     override val height: Int,

@@ -26,6 +26,7 @@ import kotlin.math.roundToInt
  * Extends [PaddleOcrDetectionBase] with JavaCPP OpenCV (`org.bytedeco.opencv.*`) for
  * the DB postprocessing step (contour finding, box scoring, polygon operations).
  */
+@InternalKtOcrONNXApi
 public class PaddleOcrDetection(
     scope: CoroutineScope,
     modelPath: String = DET_MODEL_PATH,

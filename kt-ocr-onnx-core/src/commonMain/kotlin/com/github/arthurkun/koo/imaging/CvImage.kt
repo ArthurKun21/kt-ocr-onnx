@@ -1,5 +1,8 @@
 package com.github.arthurkun.koo.imaging
 
+import com.github.arthurkun.koo.InternalKtOcrONNXApi
+
+@InternalKtOcrONNXApi
 public interface CvImage : AutoCloseable {
     public val width: Int
     public val height: Int

@@ -4,8 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import com.github.arthurkun.koo.imaging.CvImage
-import com.github.arthurkun.koo.imaging.NativeMat
-import com.github.arthurkun.koo.imaging.cvImageFromBitmap
+import com.github.arthurkun.koo.imaging.withRgbCvImageFromBitmap
+import com.github.arthurkun.koo.imaging.withRgbCvImageFromByteArray
+import com.github.arthurkun.koo.imaging.withRgbCvImageFromMat
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
@@ -17,6 +18,7 @@ import kotlinx.coroutines.runBlocking
 import org.opencv.core.Mat
 import kotlin.concurrent.atomics.AtomicBoolean
 
+@OptIn(InternalKtOcrONNXApi::class)
 public actual class PaddleOcrRecognitionService public constructor(
     platformContext: Context,
     private val recognitionModel: RecognitionModel = BaseRecognitionModel,
@@ -36,7 +38,7 @@ public actual class PaddleOcrRecognitionService public constructor(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel,
     ): RecognitionResult = recognitions.withRecognition(recognitionModel) { recognition ->
-        withByteArrayImage(byteArray) { recognizeTextInternal(it, recognition) }
+        withRgbCvImageFromByteArray(byteArray) { recognizeTextInternal(it, recognition) }
     }
 
     public suspend fun recognizeText(bitmap: Bitmap): RecognitionResult = recognizeText(bitmap, recognitionModel)
@@ -45,7 +47,7 @@ public actual class PaddleOcrRecognitionService public constructor(
         bitmap: Bitmap,
         recognitionModel: RecognitionModel,
     ): RecognitionResult = recognitions.withRecognition(recognitionModel) { recognition ->
-        withBitmapImage(bitmap) { recognizeTextInternal(it, recognition) }
+        withRgbCvImageFromBitmap(bitmap) { recognizeTextInternal(it, recognition) }
     }
 
     public suspend fun recognizeText(uri: Uri): RecognitionResult = recognizeText(uri, recognitionModel)
@@ -61,49 +63,11 @@ public actual class PaddleOcrRecognitionService public constructor(
         mat: Mat,
         recognitionModel: RecognitionModel,
     ): RecognitionResult = recognitions.withRecognition(recognitionModel) { recognition ->
-        withMatImage(mat) { recognizeTextInternal(it, recognition) }
+        withRgbCvImageFromMat(mat) { recognizeTextInternal(it, recognition) }
     }
 
     private suspend fun recognizeTextInternal(image: CvImage, recognition: PaddleOcrRecognition): RecognitionResult =
         recognition.detectText(image)
-
-    private suspend fun <T> withByteArrayImage(byteArray: ByteArray, block: suspend (CvImage) -> T): T {
-        val image = CvImage.fromByteArray(byteArray, isColor = true, tag = "ocr_input")
-        return try {
-            val rgbImage = image.toRgbCvImage()
-            try {
-                block(rgbImage)
-            } finally {
-                rgbImage.close()
-            }
-        } finally {
-            image.close()
-        }
-    }
-
-    private suspend fun <T> withBitmapImage(bitmap: Bitmap, block: suspend (CvImage) -> T): T {
-        val image = cvImageFromBitmap(bitmap, "ocr_input")
-        return try {
-            val rgbImage = image.toRgbCvImage()
-            try {
-                block(rgbImage)
-            } finally {
-                rgbImage.close()
-            }
-        } finally {
-            image.close()
-        }
-    }
-
-    private suspend fun <T> withMatImage(mat: Mat, block: suspend (CvImage) -> T): T {
-        val image = NativeMat(mat, "ocr_input")
-        val rgbImage = image.toRgbCvImage()
-        return try {
-            block(rgbImage)
-        } finally {
-            rgbImage.close()
-        }
-    }
 
     private fun readUriBytes(uri: Uri): ByteArray {
         return context.contentResolver.openInputStream(uri)?.use { it.readBytes() }

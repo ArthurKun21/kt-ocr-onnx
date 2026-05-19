@@ -51,6 +51,7 @@ import kotlin.time.Duration.Companion.seconds
  * - **DBPostProcess**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/postprocess/db_postprocess.py
  * - **PP-OCRv5 config**: configs/det/PP-OCRv5/PP-OCRv5_mobile_det.yml
  */
+@InternalKtOcrONNXApi
 public abstract class PaddleOcrDetectionBase(
     @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
     private val modelPath: String = DET_MODEL_PATH,

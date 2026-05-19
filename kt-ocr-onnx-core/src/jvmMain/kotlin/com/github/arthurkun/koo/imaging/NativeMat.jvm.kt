@@ -1,6 +1,7 @@
 package com.github.arthurkun.koo.imaging
 
 import com.github.arthurkun.koo.DetectedResults
+import com.github.arthurkun.koo.InternalKtOcrONNXApi
 import com.github.arthurkun.koo.OCRException
 import com.github.arthurkun.koo.OCRImageDecodeException
 import com.github.arthurkun.koo.OCRImageProcessingException
@@ -45,6 +46,7 @@ private val dispatcher = Dispatchers.Default
  *
  * Internal to the module. External code should use [CvImage] instead.
  */
+@InternalKtOcrONNXApi
 public actual class NativeMat public constructor(
     public val mat: Mat = Mat(),
     public actual override val tag: String,
@@ -222,6 +224,7 @@ public actual class NativeMat public constructor(
     }
 }
 
+@InternalKtOcrONNXApi
 public fun NativeMat.cropPerspective(box: DetectedResults): NativeMat {
     val pts = box.points.map { pt ->
         doubleArrayOf(

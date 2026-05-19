@@ -44,6 +44,10 @@ kotlin {
         jvmTest {
             resources.srcDir(sharedTestAssetsDir)
         }
+
+        getByName("androidDeviceTest") {
+            resources.srcDir(sharedTestAssetsDir)
+        }
     }
 }
 
