@@ -25,7 +25,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":kt-ocr-onnx-core"))
-            api(project(":detection"))
+            api(project(":detection:detection-core"))
             api(libs.kotlinx.io.core)
         }
 
