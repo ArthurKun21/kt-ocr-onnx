@@ -1,4 +1,7 @@
+import com.android.build.gradle.tasks.MergeSourceSetFolders
 import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
+
+val sharedTestAssetsDir = "src/sharedTestAssets"
 
 plugins {
     id("koo.library.kmp")
@@ -62,8 +65,6 @@ kotlin {
         }
 
         // Share test assets with jvmTest via classpath resources and Android device tests via assets.
-        val sharedTestAssetsDir = "src/sharedTestAssets"
-
         jvmTest {
             resources.srcDir(sharedTestAssetsDir)
         }
@@ -75,6 +76,17 @@ kotlin {
 }
 
 tasks {
+    withType<MergeSourceSetFolders>().matching { it.name == "mergeAndroidDeviceTestAssets" }.configureEach {
+        sourceFolderInputs.from(sharedTestAssetsDir)
+
+        doLast {
+            project.copy {
+                from(sharedTestAssetsDir)
+                into(outputDir)
+            }
+        }
+    }
+
     matching { it.name == "copyAndroidDeviceTestComposeResourcesToAndroidAssets" }.configureEach {
         enabled = false
     }

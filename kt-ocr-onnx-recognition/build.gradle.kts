@@ -1,4 +1,7 @@
+import com.android.build.gradle.tasks.MergeSourceSetFolders
 import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
+
+val sharedTestAssetsDir = "../kt-ocr-onnx/src/sharedTestAssets"
 
 plugins {
     id("koo.library.kmp")
@@ -39,14 +42,23 @@ kotlin {
             implementation(libs.opencv.jvm)
         }
 
-        val sharedTestAssetsDir = "../kt-ocr-onnx/src/sharedTestAssets"
-
         jvmTest {
             resources.srcDir(sharedTestAssetsDir)
         }
 
         getByName("androidDeviceTest") {
             resources.srcDir(sharedTestAssetsDir)
+        }
+    }
+}
+
+tasks.withType<MergeSourceSetFolders>().matching { it.name == "mergeAndroidDeviceTestAssets" }.configureEach {
+    sourceFolderInputs.from(sharedTestAssetsDir)
+
+    doLast {
+        project.copy {
+            from(sharedTestAssetsDir)
+            into(outputDir)
         }
     }
 }
