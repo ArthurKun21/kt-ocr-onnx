@@ -29,6 +29,7 @@ kotlin {
             dependsOn(jvmCommonMain)
             dependencies {
                 implementation(libs.onnxruntime.android)
+                implementation(libs.opencv.android)
             }
         }
 
@@ -36,6 +37,7 @@ kotlin {
             dependsOn(jvmCommonMain)
             dependencies {
                 implementation(libs.onnxruntime.jvm)
+                implementation(libs.opencv.jvm)
             }
         }
     }

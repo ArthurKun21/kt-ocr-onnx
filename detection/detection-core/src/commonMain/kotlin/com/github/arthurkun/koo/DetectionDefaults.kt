@@ -4,7 +4,7 @@ internal const val CHANNELS = 3
 
 internal const val DET_MODEL_PATH = "files/base/PP-OCRv5_mobile_det.onnx"
 
-internal const val DET_LIMIT_SIDE_LEN = 736
+internal const val DET_LIMIT_SIDE_LEN = 960
 internal const val DET_ROUND_TO = 32
 
 internal val DET_MEAN = floatArrayOf(0.485f, 0.456f, 0.406f)

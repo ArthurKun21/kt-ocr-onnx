@@ -109,6 +109,7 @@ public abstract interface class com/github/arthurkun/koo/imaging/CvImage : java/
 	public abstract fun getWidth ()I
 	public abstract fun isEmpty ()Z
 	public abstract fun resizeTo (II)Lcom/github/arthurkun/koo/imaging/CvImage;
+	public abstract fun toBgrCvImage ()Lcom/github/arthurkun/koo/imaging/CvImage;
 	public abstract fun toRgbCvImage ()Lcom/github/arthurkun/koo/imaging/CvImage;
 }
 
@@ -118,6 +119,9 @@ public final class com/github/arthurkun/koo/imaging/CvImage$Companion {
 }
 
 public final class com/github/arthurkun/koo/imaging/CvImageLifecycleKt {
+	public static final fun withBgrCvImage (Lcom/github/arthurkun/koo/imaging/CvImage;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun withCvImageFromByteArray ([BLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun withCvImageFromByteArray$default ([BLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static final fun withRgbCvImage (Lcom/github/arthurkun/koo/imaging/CvImage;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static final fun withRgbCvImageFromByteArray ([BLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun withRgbCvImageFromByteArray$default ([BLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
@@ -138,6 +142,8 @@ public final class com/github/arthurkun/koo/imaging/NativeMat : com/github/arthu
 	public fun isEmpty ()Z
 	public synthetic fun resizeTo (II)Lcom/github/arthurkun/koo/imaging/CvImage;
 	public fun resizeTo (II)Lcom/github/arthurkun/koo/imaging/NativeMat;
+	public synthetic fun toBgrCvImage ()Lcom/github/arthurkun/koo/imaging/CvImage;
+	public fun toBgrCvImage ()Lcom/github/arthurkun/koo/imaging/NativeMat;
 	public synthetic fun toRgbCvImage ()Lcom/github/arthurkun/koo/imaging/CvImage;
 	public fun toRgbCvImage ()Lcom/github/arthurkun/koo/imaging/NativeMat;
 	public fun toString ()Ljava/lang/String;
@@ -157,6 +163,8 @@ public final class com/github/arthurkun/koo/imaging/OpenCVSetup_jvmKt {
 }
 
 public final class com/github/arthurkun/koo/imaging/PlatformCvImageLifecycle_jvmKt {
+	public static final fun withCvImageFromMat (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun withCvImageFromMat$default (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static final fun withRgbCvImageFromMat (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun withRgbCvImageFromMat$default (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }

@@ -16,3 +16,13 @@ public suspend fun <T> withRgbCvImageFromMat(
         rgbImage.close()
     }
 }
+
+@InternalKtOcrONNXApi
+public suspend fun <T> withCvImageFromMat(
+    mat: Mat,
+    tag: String = "ocr_input",
+    block: suspend (CvImage) -> T,
+): T {
+    val image = NativeMat(mat, tag)
+    return block(image)
+}

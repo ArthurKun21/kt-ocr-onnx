@@ -25,6 +25,8 @@ public expect class NativeMat : CvImage {
 
     public override fun toRgbCvImage(): NativeMat
 
+    public override fun toBgrCvImage(): NativeMat
+
     public override fun getPixel(y: Int, x: Int): DoubleArray
 
     public override fun convertToFloat(): NativeMat

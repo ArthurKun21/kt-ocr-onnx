@@ -3,6 +3,9 @@ package com.github.arthurkun.koo
 import com.github.arthurkun.koo.imaging.CvImage
 import com.github.arthurkun.koo.imaging.NativeMat
 import com.github.arthurkun.koo.imaging.cropPerspective
+import com.github.arthurkun.koo.imaging.withBgrCvImage
+import com.github.arthurkun.koo.imaging.withCvImageFromByteArray
+import com.github.arthurkun.koo.imaging.withCvImageFromMat
 import com.github.arthurkun.koo.imaging.withRgbCvImageFromByteArray
 import com.github.arthurkun.koo.imaging.withRgbCvImageFromMat
 import com.github.arthurkun.koo.recognition.RecognitionModel
@@ -49,7 +52,7 @@ public actual class PaddleOcrService public constructor(
         recognitionModel: RecognitionModel,
     ): RecognitionResult {
         return recognitions.withRecognition(recognitionModel) { recognition ->
-            withRgbCvImageFromByteArray(byteArray) { recognizeTextInternal(it, recognition) }
+            withCvImageFromByteArray(byteArray) { recognizeTextInternal(it, recognition) }
         }
     }
 
@@ -75,7 +78,7 @@ public actual class PaddleOcrService public constructor(
         recognitionModel: RecognitionModel,
     ): RecognitionResult {
         return recognitions.withRecognition(recognitionModel) { recognition ->
-            withRgbCvImageFromMat(mat) { recognizeTextInternal(it, recognition) }
+            withCvImageFromMat(mat) { recognizeTextInternal(it, recognition) }
         }
     }
 
@@ -108,7 +111,9 @@ public actual class PaddleOcrService public constructor(
         return runDetectAndRecognizePipeline(
             image = image,
             detectText = ::detectTextInternal,
-            recognizeText = { croppedImage -> recognizeTextInternal(croppedImage, recognition) },
+            recognizeText = { croppedImage ->
+                withBgrCvImage(croppedImage) { bgrImage -> recognizeTextInternal(bgrImage, recognition) }
+            },
             cropFromBox = { box -> nativeMat.cropPerspective(box) },
             log = { message -> logcat(TAG) { message } },
         )

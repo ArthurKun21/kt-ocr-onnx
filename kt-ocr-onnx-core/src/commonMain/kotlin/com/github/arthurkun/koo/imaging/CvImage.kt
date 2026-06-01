@@ -14,6 +14,8 @@ public interface CvImage : AutoCloseable {
 
     public fun toRgbCvImage(): CvImage
 
+    public fun toBgrCvImage(): CvImage
+
     public fun getPixel(y: Int, x: Int): DoubleArray
 
     public fun convertToFloat(): CvImage

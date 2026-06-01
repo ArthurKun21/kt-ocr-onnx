@@ -100,6 +100,46 @@ public actual class NativeMat public constructor(
         }
     }
 
+    public actual override fun toBgrCvImage(): NativeMat {
+        if (mat.empty()) {
+            throw OCRImageProcessingException(
+                "Cannot convert an empty image to BGR: $tag",
+            )
+        }
+
+        val bgrMat = Mat()
+        return try {
+            when (mat.channels()) {
+                1 -> Imgproc.cvtColor(mat, bgrMat, Imgproc.COLOR_GRAY2BGR)
+
+                3 -> Imgproc.cvtColor(mat, bgrMat, Imgproc.COLOR_RGB2BGR)
+
+                4 -> Imgproc.cvtColor(mat, bgrMat, Imgproc.COLOR_RGBA2BGR)
+
+                else -> throw OCRImageProcessingException(
+                    "Unsupported channel count ${mat.channels()} for image: $tag",
+                )
+            }
+            NativeMat(bgrMat, "$tag[bgr]")
+        } catch (e: CvException) {
+            logcat(LogPriority.ERROR, TAG) {
+                "Failed to convert mat to BGR: $tag ${e.asLog()}"
+            }
+            bgrMat.release()
+            throw OCRImageProcessingException("Failed to convert image to BGR: $tag", cause = e)
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, TAG) {
+                "Unexpected error converting mat to BGR: $tag ${e.asLog()}"
+            }
+            bgrMat.release()
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRImageProcessingException("Failed to convert image to BGR: $tag", cause = e)
+            }
+        }
+    }
+
     public actual override fun getPixel(y: Int, x: Int): DoubleArray {
         if (mat.empty()) {
             throw OCRImageProcessingException(

@@ -17,6 +17,20 @@ public suspend fun <T> withRgbCvImageFromByteArray(
 }
 
 @InternalKtOcrONNXApi
+public suspend fun <T> withCvImageFromByteArray(
+    byteArray: ByteArray,
+    tag: String = "ocr_input",
+    block: suspend (CvImage) -> T,
+): T {
+    val image = CvImage.fromByteArray(byteArray, isColor = true, tag = tag)
+    return try {
+        block(image)
+    } finally {
+        image.close()
+    }
+}
+
+@InternalKtOcrONNXApi
 public suspend fun <T> withRgbCvImage(
     image: CvImage,
     block: suspend (CvImage) -> T,
@@ -26,5 +40,18 @@ public suspend fun <T> withRgbCvImage(
         block(rgbImage)
     } finally {
         rgbImage.close()
+    }
+}
+
+@InternalKtOcrONNXApi
+public suspend fun <T> withBgrCvImage(
+    image: CvImage,
+    block: suspend (CvImage) -> T,
+): T {
+    val bgrImage = image.toBgrCvImage()
+    return try {
+        block(bgrImage)
+    } finally {
+        bgrImage.close()
     }
 }

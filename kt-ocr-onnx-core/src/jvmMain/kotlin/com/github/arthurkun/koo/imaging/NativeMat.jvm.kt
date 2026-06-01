@@ -26,7 +26,10 @@ import org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_GRAYSCALE
 import org.bytedeco.opencv.global.opencv_imgcodecs.imdecode
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGRA2RGB
+import org.bytedeco.opencv.global.opencv_imgproc.COLOR_GRAY2BGR
 import org.bytedeco.opencv.global.opencv_imgproc.COLOR_GRAY2RGB
+import org.bytedeco.opencv.global.opencv_imgproc.COLOR_RGB2BGR
+import org.bytedeco.opencv.global.opencv_imgproc.COLOR_RGBA2BGR
 import org.bytedeco.opencv.global.opencv_imgproc.INTER_CUBIC
 import org.bytedeco.opencv.global.opencv_imgproc.cvtColor
 import org.bytedeco.opencv.global.opencv_imgproc.getPerspectiveTransform
@@ -103,6 +106,40 @@ public actual class NativeMat public constructor(
                 e
             } else {
                 OCRImageProcessingException("Failed to convert image to RGB: $tag", cause = e)
+            }
+        }
+    }
+
+    public actual override fun toBgrCvImage(): NativeMat {
+        if (mat.empty()) {
+            throw OCRImageProcessingException(
+                "Cannot convert an empty image to BGR: $tag",
+            )
+        }
+
+        val bgrMat = Mat()
+        return try {
+            when (mat.channels()) {
+                1 -> cvtColor(mat, bgrMat, COLOR_GRAY2BGR)
+
+                3 -> cvtColor(mat, bgrMat, COLOR_RGB2BGR)
+
+                4 -> cvtColor(mat, bgrMat, COLOR_RGBA2BGR)
+
+                else -> throw OCRImageProcessingException(
+                    "Unsupported channel count ${mat.channels()} for image: $tag",
+                )
+            }
+            NativeMat(bgrMat, "$tag[bgr]")
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, TAG) {
+                "Failed to convert mat to BGR: $tag ${e.asLog()}"
+            }
+            bgrMat.close()
+            throw if (e is OCRException) {
+                e
+            } else {
+                OCRImageProcessingException("Failed to convert image to BGR: $tag", cause = e)
             }
         }
     }

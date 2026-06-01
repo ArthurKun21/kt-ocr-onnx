@@ -1,8 +1,8 @@
 package com.github.arthurkun.koo
 
 import com.github.arthurkun.koo.imaging.CvImage
-import com.github.arthurkun.koo.imaging.withRgbCvImageFromByteArray
-import com.github.arthurkun.koo.imaging.withRgbCvImageFromMat
+import com.github.arthurkun.koo.imaging.withCvImageFromByteArray
+import com.github.arthurkun.koo.imaging.withCvImageFromMat
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
@@ -32,7 +32,7 @@ public actual class PaddleOcrRecognitionService public constructor(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel,
     ): RecognitionResult = recognitions.withRecognition(recognitionModel) { recognition ->
-        withRgbCvImageFromByteArray(byteArray) { recognizeTextInternal(it, recognition) }
+        withCvImageFromByteArray(byteArray) { recognizeTextInternal(it, recognition) }
     }
 
     public suspend fun recognizeText(mat: Mat): RecognitionResult = recognizeText(mat, recognitionModel)
@@ -41,7 +41,7 @@ public actual class PaddleOcrRecognitionService public constructor(
         mat: Mat,
         recognitionModel: RecognitionModel,
     ): RecognitionResult = recognitions.withRecognition(recognitionModel) { recognition ->
-        withRgbCvImageFromMat(mat) { recognizeTextInternal(it, recognition) }
+        withCvImageFromMat(mat) { recognizeTextInternal(it, recognition) }
     }
 
     private suspend fun recognizeTextInternal(image: CvImage, recognition: PaddleOcrRecognition): RecognitionResult =

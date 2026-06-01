@@ -16,10 +16,8 @@ import kotlinx.coroutines.withTimeout
 import logcat.LogPriority
 import logcat.asLog
 import logcat.logcat
-import java.nio.FloatBuffer
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.AtomicReference
-import kotlin.math.ceil
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -301,7 +299,7 @@ public class PaddleOcrRecognition public constructor(
         }
 
         // Preprocess image
-        val inputTensor = preprocessImage(inputImage, env)
+        val inputTensor = preprocessRecognitionImage(inputImage, env)
 
         // Run inference
         val output = try {
@@ -321,79 +319,6 @@ public class PaddleOcrRecognition public constructor(
         } finally {
             output.close()
         }
-    }
-
-    /**
-     * Preprocesses an image for the PaddleOCR recognition model.
-     *
-     * Matches the resize_norm_img function from PaddleOCR Python:
-     * - **Source**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/data/imaug/rec_img_aug.py
-     *
-     * Steps:
-     * 1. Convert bitmap to OpenCV Mat (RGB)
-     * 2. Resize maintaining aspect ratio with target height of 48
-     * 3. Normalize using (x/255 - 0.5) / 0.5 to get [-1, 1] range
-     * 4. Pad to target width (320) with zeros
-     * 5. Convert to NCHW format (batch, channels, height, width)
-     *
-     * @param inputImage CvImage (cropped text region)
-     * @param env ONNX Runtime environment
-     * @return OnnxTensor ready for inference
-     */
-    private fun preprocessImage(inputImage: CvImage, env: OrtEnvironment): OnnxTensor {
-        if (inputImage.isEmpty()) {
-            throw OCRImageProcessingException(
-                "Input image is empty",
-            )
-        }
-        val h = inputImage.height
-        val w = inputImage.width
-
-        // Calculate aspect ratio and resized width
-        val ratio = w.toDouble() / h.toDouble()
-        val resizedW = if (ceil(TARGET_HEIGHT * ratio).toInt() > TARGET_WIDTH) {
-            TARGET_WIDTH
-        } else {
-            ceil(TARGET_HEIGHT * ratio).toInt()
-        }
-
-        // Resize image using CvImage public API
-        val resizedImage = inputImage.resizeTo(TARGET_HEIGHT, resizedW)
-
-        val floatImage = try {
-            // Convert to float type for preprocessing
-            resizedImage.convertToFloat()
-        } finally {
-            resizedImage.close()
-        }
-
-        // Create padded buffer in NCHW format (already zero-initialized)
-        val buffer = FloatBuffer.allocate(1 * CHANNELS * TARGET_HEIGHT * TARGET_WIDTH)
-
-        try {
-            // Convert HWC to NCHW and normalize: (x/255 - 0.5) / 0.5
-            for (c in 0 until CHANNELS) {
-                for (y in 0 until TARGET_HEIGHT) {
-                    for (x in 0 until resizedW) {
-                        val pixel = floatImage.getPixel(y, x)
-                        // Normalization: (pixel/255 - 0.5) / 0.5
-                        val normalized = (pixel[c].toFloat() / 255.0f - 0.5f) / 0.5f
-                        val index = c * TARGET_HEIGHT * TARGET_WIDTH + y * TARGET_WIDTH + x
-                        buffer.put(index, normalized)
-                    }
-                }
-            }
-        } finally {
-            floatImage.close()
-        }
-
-        buffer.rewind()
-
-        return OnnxTensor.createTensor(
-            env,
-            buffer,
-            longArrayOf(1, CHANNELS.toLong(), TARGET_HEIGHT.toLong(), TARGET_WIDTH.toLong()),
-        )
     }
 
     /**

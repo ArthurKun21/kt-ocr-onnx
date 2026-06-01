@@ -27,7 +27,6 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.seconds
@@ -41,7 +40,7 @@ import kotlin.time.Duration.Companion.seconds
  *
  * ## Pipeline
  *
- * 1. **Preprocessing**: Resize (min side -> 736, round to 32), ImageNet normalize, HWC -> NCHW
+ * 1. **Preprocessing**: Resize (max side -> 960, round to 32), ImageNet normalize, HWC -> NCHW
  * 2. **Inference**: ONNX model produces a probability map (1, 1, H, W)
  * 3. **Postprocessing**: DB algorithm — binarize, find contours, score, unclip, scale back
  *
@@ -220,7 +219,7 @@ public abstract class PaddleOcrDetectionBase(
      * Preprocesses an image for the detection model.
      *
      * Steps (matching PaddleOCR Python pipeline):
-     * 1. DetResizeForTest: resize so min side >= 736, both dims rounded to multiple of 32
+     * 1. DetResizeForTest: resize so max side <= 960, both dims rounded to multiple of 32
      * 2. NormalizeImage: ImageNet normalization (pixel/255 - mean) / std
      * 3. ToCHWImage: HWC → CHW
      * 4. Add batch dim: CHW → NCHW
@@ -234,9 +233,9 @@ public abstract class PaddleOcrDetectionBase(
         val h = inputImage.height
         val w = inputImage.width
 
-        // DetResizeForTest: limit_type="min", limit_side_len=736
-        val ratio = if (min(h, w) < DET_LIMIT_SIDE_LEN) {
-            DET_LIMIT_SIDE_LEN.toFloat() / min(h, w).toFloat()
+        // DetResizeForTest for PP-OCRv5 mobile: limit_type="max", limit_side_len=960.
+        val ratio = if (max(h, w) > DET_LIMIT_SIDE_LEN) {
+            DET_LIMIT_SIDE_LEN.toFloat() / max(h, w).toFloat()
         } else {
             1.0f
         }
