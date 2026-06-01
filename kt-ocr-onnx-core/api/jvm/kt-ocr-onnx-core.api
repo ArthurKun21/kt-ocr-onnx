@@ -87,6 +87,10 @@ public final class com/github/arthurkun/koo/OcrResult {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class com/github/arthurkun/koo/OpenCVKt {
+	public static final fun initOpenCV ()V
+}
+
 public final class com/github/arthurkun/koo/RecognitionResult {
 	public fun <init> (Ljava/lang/String;F)V
 	public final fun component1 ()Ljava/lang/String;

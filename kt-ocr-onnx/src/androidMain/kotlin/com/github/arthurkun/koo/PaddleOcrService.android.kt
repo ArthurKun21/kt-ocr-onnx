@@ -40,7 +40,7 @@ public actual class PaddleOcrService public constructor(
     private val recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
 ) : AndroidOcrApi {
 
-    private val context: Context = platformContext
+    private val context: Context = platformContext.applicationContext ?: platformContext
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isClosed = AtomicBoolean(false)

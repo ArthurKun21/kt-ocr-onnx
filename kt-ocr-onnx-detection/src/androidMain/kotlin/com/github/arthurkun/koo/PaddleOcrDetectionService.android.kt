@@ -19,7 +19,7 @@ public actual class PaddleOcrDetectionService public constructor(
     platformContext: Context,
 ) : AndroidDetectionApi {
 
-    private val context: Context = platformContext
+    private val context: Context = platformContext.applicationContext ?: platformContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val isClosed = AtomicBoolean(false)
     private val detection = PaddleOcrDetection(scope)

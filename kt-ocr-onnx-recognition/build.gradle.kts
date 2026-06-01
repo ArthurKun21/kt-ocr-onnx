@@ -30,10 +30,10 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":kt-ocr-onnx-core"))
-            api(project(":recognition:recognition-core"))
             api(project(":recognition:model-core"))
             api(project(":recognition:model-base"))
             api(libs.kotlinx.io.core)
+            implementation(project(":recognition:recognition-core"))
         }
 
         androidMain.dependencies {

@@ -38,6 +38,10 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
         return loadAndroidTestAssetBytes(path)
     }
 
+    override fun listTestResourceDirectories(path: String): List<String> {
+        return listAndroidTestAssetDirectories(path)
+    }
+
     override fun createPaddleOcrService(
         recognitionModel: RecognitionModel,
         recognitionModelCachePolicy: RecognitionModelCachePolicy,
@@ -61,7 +65,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
 
     @Test
     fun testDetectAndRecognizeTextFromTestImageBitmapUsesDefaultRecognitionModel() = runTest {
-        val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
+        val bitmap = loadImageBitmap(defaultOcrTestCase().imagePath)
 
         try {
             val results = (paddleOcrService as AndroidOcrApi).detectAndRecognizeText(bitmap)
@@ -74,7 +78,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
 
     @Test
     fun testDetectAndRecognizeTextBitmapUsesExplicitRecognitionSession() = runTest {
-        val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
+        val bitmap = loadImageBitmap(defaultOcrTestCase().imagePath)
         val recognitionModel = CountingRecognitionModel()
         val bitmapService = PaddleOcrService(
             platformContext = context,
@@ -126,4 +130,20 @@ private fun androidTestAssetCandidates(path: String): List<String> {
         "$COMPOSE_TEST_ASSET_PREFIX$path",
         path,
     ).distinct()
+}
+
+private fun listAndroidTestAssetDirectories(path: String): List<String> {
+    val assets = InstrumentationRegistry.getInstrumentation().context.assets
+    return androidTestAssetCandidates(path)
+        .asSequence()
+        .flatMap { root ->
+            assets.list(root).orEmpty().asSequence().mapNotNull { child ->
+                val childPath = "$root/$child"
+                val originalPath = "$path/$child"
+                if (assets.list(childPath).orEmpty().isNotEmpty()) originalPath else null
+            }
+        }
+        .distinct()
+        .sorted()
+        .toList()
 }

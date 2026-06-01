@@ -30,8 +30,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":kt-ocr-onnx-core"))
-            api(project(":detection:detection-core"))
             api(libs.kotlinx.io.core)
+            implementation(project(":detection:detection-core"))
         }
 
         androidMain.dependencies {

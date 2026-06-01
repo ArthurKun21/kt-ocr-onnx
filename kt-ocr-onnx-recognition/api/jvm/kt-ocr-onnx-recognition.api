@@ -10,10 +10,6 @@ public final class com/github/arthurkun/koo/JvmRecognitionApi$DefaultImpls {
 	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/JvmRecognitionApi;Lorg/bytedeco/opencv/opencv_core/Mat;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
-public final class com/github/arthurkun/koo/OpenCVKt {
-	public static final fun initOpenCV ()V
-}
-
 public final class com/github/arthurkun/koo/PaddleOcrRecognitionService : com/github/arthurkun/koo/JvmRecognitionApi {
 	public fun <init> ()V
 	public fun <init> (Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lcom/github/arthurkun/koo/recognition/RecognitionModelCachePolicy;)V

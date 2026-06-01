@@ -6,6 +6,8 @@ import com.github.arthurkun.koo.imaging.NativeMat
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import kotlinx.coroutines.test.runTest
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.test.Test
 
 /**
@@ -38,9 +40,23 @@ class PaddleOcrRecognitionServiceJvmTest : PaddleOcrRecognitionServiceTestBase()
         return inputStream.readBytes()
     }
 
+    override fun listTestResourceDirectories(path: String): List<String> {
+        val resource = requireNotNull(Thread.currentThread().contextClassLoader?.getResource(path)) {
+            "Test resource directory not found: $path"
+        }
+        val directory = Paths.get(resource.toURI())
+        return Files.list(directory).use { paths ->
+            paths
+                .filter { Files.isDirectory(it) }
+                .map { "$path/${it.fileName}" }
+                .sorted()
+                .toList()
+        }
+    }
+
     @Test
     fun testRecognizeTextMatUsesDefaultRecognitionModel() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
+        val bytes = loadTestResourceBytes(defaultRecognitionTestCase().imagePath)
         val image = NativeMat.fromByteArray(bytes, isColor = true, tag = "jvm-test")
 
         try {
@@ -53,7 +69,7 @@ class PaddleOcrRecognitionServiceJvmTest : PaddleOcrRecognitionServiceTestBase()
 
     @Test
     fun testRecognizeTextMatUsesExplicitRecognitionSession() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
+        val bytes = loadTestResourceBytes(defaultRecognitionTestCase().imagePath)
         val recognitionModel = CountingRecognitionModel()
         val image = NativeMat.fromByteArray(bytes, isColor = true, tag = "jvm-test")
 

@@ -1,5 +1,8 @@
 package com.github.arthurkun.koo
 
+import java.nio.file.Files
+import java.nio.file.Paths
+
 /**
  * JVM tests for PaddleOcrDetectionService.
  *
@@ -21,5 +24,19 @@ class PaddleOcrDetectionServiceJvmTest : PaddleOcrDetectionServiceTestBase() {
         }
 
         return inputStream.readBytes()
+    }
+
+    override fun listTestResourceDirectories(path: String): List<String> {
+        val resource = requireNotNull(Thread.currentThread().contextClassLoader?.getResource(path)) {
+            "Test resource directory not found: $path"
+        }
+        val directory = Paths.get(resource.toURI())
+        return Files.list(directory).use { paths ->
+            paths
+                .filter { Files.isDirectory(it) }
+                .map { "$path/${it.fileName}" }
+                .sorted()
+                .toList()
+        }
     }
 }

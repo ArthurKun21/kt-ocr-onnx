@@ -25,6 +25,8 @@ abstract class PaddleOcrRecognitionServiceTestBase {
 
     abstract fun loadTestResourceBytes(path: String): ByteArray
 
+    abstract fun listTestResourceDirectories(path: String): List<String>
+
     protected abstract fun createPaddleOcrRecognitionService(
         recognitionModel: RecognitionModel = BaseRecognitionModel,
         recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
@@ -45,14 +47,16 @@ abstract class PaddleOcrRecognitionServiceTestBase {
 
     @Test
     fun testRecognizeTextFromTestImage() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
-        val result = paddleOcrRecognitionService.recognizeText(bytes)
-        assertRecognizedTextMatchesBaseline(result)
+        for (testCase in loadRecognitionTestCases()) {
+            val bytes = loadTestResourceBytes(testCase.imagePath)
+            val result = paddleOcrRecognitionService.recognizeText(bytes)
+            assertRecognizedTextMatchesBaseline(result, testCase)
+        }
     }
 
     @Test
     fun testRecognizeTextKeepsExplicitRecognitionSessionInMemory() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
+        val bytes = loadTestResourceBytes(defaultRecognitionTestCase().imagePath)
         val recognitionModel = CountingRecognitionModel()
 
         val firstResult = paddleOcrRecognitionService.recognizeText(bytes, recognitionModel)
@@ -66,7 +70,7 @@ abstract class PaddleOcrRecognitionServiceTestBase {
 
     @Test
     fun testRecognizeTextLoadEachTimeCreatesNewRecognitionSession() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
+        val bytes = loadTestResourceBytes(defaultRecognitionTestCase().imagePath)
         val recognitionModel = CountingRecognitionModel()
         val localService = createPaddleOcrRecognitionService(
             recognitionModel = recognitionModel,
@@ -89,7 +93,7 @@ abstract class PaddleOcrRecognitionServiceTestBase {
 
     @Test
     fun testCloseRejectsFurtherRecognitionRequests() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
+        val bytes = loadTestResourceBytes(defaultRecognitionTestCase().imagePath)
         val recognitionModel = CountingRecognitionModel()
         val localService = createPaddleOcrRecognitionService(recognitionModel = recognitionModel)
 
@@ -114,13 +118,48 @@ abstract class PaddleOcrRecognitionServiceTestBase {
         }
     }
 
-    protected fun assertRecognizedTextMatchesBaseline(result: RecognitionResult) {
+    protected fun assertRecognizedTextMatchesBaseline(
+        result: RecognitionResult,
+        testCase: RecognitionTestImageCase = defaultRecognitionTestCase(),
+    ) {
         val normalized = result.text.replace(Regex("\\s+"), " ").trim()
         assertThat(normalized).isNotEmpty()
-        assertThat(normalized).contains("Gate of Skye")
-        assertThat(normalized).contains("Lv")
+        testCase.expectedTextLines.forEach { expectedText ->
+            assertThat(normalized).contains(expectedText)
+        }
+    }
+
+    protected fun loadRecognitionTestCases(): List<RecognitionTestImageCase> {
+        val cases = listTestResourceDirectories(OCR_TEST_CASES_PATH).map { casePath ->
+            RecognitionTestImageCase(
+                directoryPath = casePath,
+                imagePath = "$casePath/image.png",
+                expectedTextLines = loadOptionalTextLines("$casePath/text.txt"),
+            )
+        }
+        assertThat(cases).isNotEmpty()
+        return cases
+    }
+
+    protected fun defaultRecognitionTestCase(): RecognitionTestImageCase = loadRecognitionTestCases().first()
+
+    private fun loadOptionalTextLines(path: String): List<String> {
+        val text = runCatching { loadTestResourceBytes(path).decodeToString() }.getOrNull()
+        val lines = text
+            ?.lineSequence()
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.toList()
+            .orEmpty()
+        return lines.ifEmpty { DEFAULT_EXPECTED_TEXT_LINES }
     }
 }
+
+data class RecognitionTestImageCase(
+    val directoryPath: String,
+    val imagePath: String,
+    val expectedTextLines: List<String>,
+)
 
 internal class CountingRecognitionModel(
     override val id: String = "counting-base-recognition-model",
@@ -143,4 +182,5 @@ internal class CountingRecognitionModel(
     }
 }
 
-internal const val TEST_IMAGE_PATH = "ocr/noble-phantasm-en.png"
+internal const val OCR_TEST_CASES_PATH = "ocr"
+internal val DEFAULT_EXPECTED_TEXT_LINES: List<String> = listOf("Gate of Skye", "Lv")

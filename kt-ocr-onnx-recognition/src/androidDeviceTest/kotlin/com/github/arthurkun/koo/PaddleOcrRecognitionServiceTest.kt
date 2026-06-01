@@ -45,6 +45,10 @@ class PaddleOcrRecognitionServiceTest : PaddleOcrRecognitionServiceTestBase() {
         return loadAndroidTestAssetBytes(path)
     }
 
+    override fun listTestResourceDirectories(path: String): List<String> {
+        return listAndroidTestAssetDirectories(path)
+    }
+
     override fun createPaddleOcrRecognitionService(
         recognitionModel: RecognitionModel,
         recognitionModelCachePolicy: RecognitionModelCachePolicy,
@@ -68,7 +72,7 @@ class PaddleOcrRecognitionServiceTest : PaddleOcrRecognitionServiceTestBase() {
 
     @Test
     fun testRecognizeTextFromTestImageBitmapUsesDefaultRecognitionModel() = runTest {
-        val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
+        val bitmap = loadImageBitmap(defaultRecognitionTestCase().imagePath)
 
         try {
             val result = (paddleOcrRecognitionService as AndroidRecognitionApi).recognizeText(bitmap)
@@ -81,7 +85,7 @@ class PaddleOcrRecognitionServiceTest : PaddleOcrRecognitionServiceTestBase() {
 
     @Test
     fun testRecognizeTextBitmapUsesExplicitRecognitionSession() = runTest {
-        val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
+        val bitmap = loadImageBitmap(defaultRecognitionTestCase().imagePath)
         val recognitionModel = CountingRecognitionModel()
         val bitmapService = PaddleOcrRecognitionService(
             platformContext = context,
@@ -133,4 +137,20 @@ private fun androidTestAssetCandidates(path: String): List<String> {
         "$COMPOSE_TEST_ASSET_PREFIX$path",
         path,
     ).distinct()
+}
+
+private fun listAndroidTestAssetDirectories(path: String): List<String> {
+    val assets = InstrumentationRegistry.getInstrumentation().context.assets
+    return androidTestAssetCandidates(path)
+        .asSequence()
+        .flatMap { root ->
+            assets.list(root).orEmpty().asSequence().mapNotNull { child ->
+                val childPath = "$root/$child"
+                val originalPath = "$path/$child"
+                if (assets.list(childPath).orEmpty().isNotEmpty()) originalPath else null
+            }
+        }
+        .distinct()
+        .sorted()
+        .toList()
 }

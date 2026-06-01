@@ -63,10 +63,6 @@ public final class com/github/arthurkun/koo/OcrApi$DefaultImpls {
 	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
-public final class com/github/arthurkun/koo/OpenCVKt {
-	public static final fun initOpenCV ()V
-}
-
 public final class com/github/arthurkun/koo/PaddleOcrService : com/github/arthurkun/koo/JvmOcrApi {
 	public static final field $stable I
 	public fun <init> ()V

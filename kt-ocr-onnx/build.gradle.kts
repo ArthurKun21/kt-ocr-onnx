@@ -33,11 +33,11 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.resources)
             api(project(":kt-ocr-onnx-core"))
-            api(project(":detection:detection-core"))
-            api(project(":recognition:recognition-core"))
             api(libs.kotlinx.io.core)
             api(project(":recognition:model-core"))
             api(project(":recognition:model-base"))
+            implementation(project(":detection:detection-core"))
+            implementation(project(":recognition:recognition-core"))
         }
 
         val jvmCommonMain by creating {
