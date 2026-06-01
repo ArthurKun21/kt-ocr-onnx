@@ -1,7 +1,9 @@
 import com.android.build.gradle.tasks.MergeSourceSetFolders
 import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
+import org.gradle.api.tasks.Copy
 
 val sharedTestAssetsDir = "src/sharedTestAssets"
+val sharedTestAssets = layout.projectDirectory.dir(sharedTestAssetsDir)
 
 plugins {
     id("koo.library.kmp")
@@ -75,16 +77,19 @@ kotlin {
     }
 }
 
+val copySharedAndroidDeviceTestAssets = tasks.register<Copy>("copySharedAndroidDeviceTestAssets") {
+    from(sharedTestAssets)
+    into(layout.buildDirectory.dir("intermediates/assets/androidDeviceTest/mergeAndroidDeviceTestAssets"))
+    dependsOn("mergeAndroidDeviceTestAssets")
+}
+
 tasks {
     withType<MergeSourceSetFolders>().matching { it.name == "mergeAndroidDeviceTestAssets" }.configureEach {
-        sourceFolderInputs.from(sharedTestAssetsDir)
+        sourceFolderInputs.from(sharedTestAssets)
+    }
 
-        doLast {
-            project.copy {
-                from(sharedTestAssetsDir)
-                into(outputDir)
-            }
-        }
+    matching { it.name == "compressAndroidDeviceTestAssets" }.configureEach {
+        dependsOn(copySharedAndroidDeviceTestAssets)
     }
 
     matching { it.name == "copyAndroidDeviceTestComposeResourcesToAndroidAssets" }.configureEach {
