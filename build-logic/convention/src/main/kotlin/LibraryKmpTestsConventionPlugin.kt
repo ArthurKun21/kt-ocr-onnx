@@ -7,6 +7,7 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.gradle.api.tasks.testing.Test
 
 @Suppress("unused")
 class LibraryKmpTestsConventionPlugin : Plugin<Project> {
@@ -55,6 +56,12 @@ class LibraryKmpTestsConventionPlugin : Plugin<Project> {
                         }
                     }
 
+                }
+            }
+
+            tasks.withType<Test>().configureEach {
+                if (name == "testAndroidHostTest") {
+                    failOnNoDiscoveredTests.set(false)
                 }
             }
         }

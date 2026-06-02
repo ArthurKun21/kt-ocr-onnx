@@ -1,8 +1,15 @@
+import com.android.build.gradle.tasks.MergeSourceSetFolders
+import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
+import org.gradle.api.tasks.Copy
+
+val sharedTestAssetsDir = "src/sharedTestAssets"
+val sharedTestAssets = layout.projectDirectory.dir(sharedTestAssetsDir)
+
 plugins {
     id("koo.library.kmp")
     id("koo.library.kmp.tests")
     id("koo.compose")
-    alias(libs.plugins.vanniktech.maven.publish)
+    id("koo.maven.publish")
 }
 
 kotlin {
@@ -15,7 +22,6 @@ kotlin {
 
     android {
         namespace = "com.github.arthurkun.koo"
-        androidResources.enable = true
 
         optimization {
             consumerKeepRules.file("consumer-rules.pro")
@@ -26,9 +32,12 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.resources)
+            api(project(":kt-ocr-onnx-core"))
             api(libs.kotlinx.io.core)
             api(project(":recognition:model-core"))
             api(project(":recognition:model-base"))
+            implementation(project(":detection:detection-core"))
+            implementation(project(":recognition:recognition-core"))
         }
 
         val jvmCommonMain by creating {
@@ -57,10 +66,7 @@ kotlin {
             }
         }
 
-        // Share test assets between jvmTest and androidDeviceTest.
-        // These are NOT compose component resources (those live in commonMain/composeResources).
-        val sharedTestAssetsDir = "src/sharedTestAssets"
-
+        // Share test assets with jvmTest via classpath resources and Android device tests via assets.
         jvmTest {
             resources.srcDir(sharedTestAssetsDir)
         }
@@ -71,7 +77,24 @@ kotlin {
     }
 }
 
+val copySharedAndroidDeviceTestAssets = tasks.register<Copy>("copySharedAndroidDeviceTestAssets") {
+    from(sharedTestAssets)
+    into(layout.buildDirectory.dir("intermediates/assets/androidDeviceTest/mergeAndroidDeviceTestAssets"))
+    dependsOn("mergeAndroidDeviceTestAssets")
+}
+
 tasks {
+    withType<MergeSourceSetFolders>().matching { it.name == "mergeAndroidDeviceTestAssets" }.configureEach {
+        sourceFolderInputs.from(sharedTestAssets)
+    }
+
+    matching { it.name == "compressAndroidDeviceTestAssets" }.configureEach {
+        dependsOn(copySharedAndroidDeviceTestAssets)
+    }
+
+    matching { it.name == "copyAndroidDeviceTestComposeResourcesToAndroidAssets" }.configureEach {
+        enabled = false
+    }
 
     // when running with jvm test with jetbrains runtime jdk 25
     withType<Test> {
@@ -84,29 +107,14 @@ compose.resources {
 }
 
 mavenPublishing {
-    coordinates("com.github.ArthurKun21", "kt-ocr-onnx", version.toString())
+    coordinates(
+        groupId = MAVEN_PUBLISH_GROUP_ID,
+        artifactId = "kt-ocr-onnx",
+        version = version.toString(),
+    )
 
     pom {
-        name.set("kt-ocr-onnx")
+        name.set("Kt OCR ONNX")
         description.set("Kotlin Multiplatform OCR library using PaddleOCR v5 ONNX models.")
-        url.set("https://github.com/ArthurKun21/kt-ocr-onnx")
-        licenses {
-            license {
-                name.set("The Apache License, Version 2.0")
-                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-            }
-        }
-        developers {
-            developer {
-                id.set("ArthurKun21")
-                name.set("Arthur")
-                email.set("16458204+ArthurKun21@users.noreply.github.com")
-            }
-        }
-        scm {
-            connection.set("scm:git:git://github.com/ArthurKun21/kt-ocr-onnx.git")
-            developerConnection.set("scm:git:ssh://github.com/ArthurKun21/kt-ocr-onnx.git")
-            url.set("https://github.com/ArthurKun21/kt-ocr-onnx")
-        }
     }
 }

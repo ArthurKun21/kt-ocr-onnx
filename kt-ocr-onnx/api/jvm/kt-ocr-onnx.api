@@ -1,31 +1,3 @@
-public final class com/github/arthurkun/koo/BoxPoint {
-	public static final field $stable I
-	public fun <init> (II)V
-	public final fun component1 ()I
-	public final fun component2 ()I
-	public final fun copy (II)Lcom/github/arthurkun/koo/BoxPoint;
-	public static synthetic fun copy$default (Lcom/github/arthurkun/koo/BoxPoint;IIILjava/lang/Object;)Lcom/github/arthurkun/koo/BoxPoint;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getX ()I
-	public final fun getY ()I
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class com/github/arthurkun/koo/DetectedResults {
-	public static final field $stable I
-	public fun <init> (Ljava/util/List;F)V
-	public final fun component1 ()Ljava/util/List;
-	public final fun component2 ()F
-	public final fun copy (Ljava/util/List;F)Lcom/github/arthurkun/koo/DetectedResults;
-	public static synthetic fun copy$default (Lcom/github/arthurkun/koo/DetectedResults;Ljava/util/List;FILjava/lang/Object;)Lcom/github/arthurkun/koo/DetectedResults;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getPoints ()Ljava/util/List;
-	public final fun getScore ()F
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
 public abstract interface class com/github/arthurkun/koo/JvmOcrApi : com/github/arthurkun/koo/OcrApi {
 	public abstract fun detectAndRecognizeText (Lorg/bytedeco/opencv/opencv_core/Mat;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun detectAndRecognizeText$default (Lcom/github/arthurkun/koo/JvmOcrApi;Lorg/bytedeco/opencv/opencv_core/Mat;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
@@ -46,60 +18,6 @@ public final class com/github/arthurkun/koo/JvmOcrApi$DefaultImpls {
 	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static fun recognizeText (Lcom/github/arthurkun/koo/JvmOcrApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/JvmOcrApi;Lorg/bytedeco/opencv/opencv_core/Mat;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-}
-
-public final class com/github/arthurkun/koo/OCRClosedException : com/github/arthurkun/koo/OCRException {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-}
-
-public class com/github/arthurkun/koo/OCRException : java/lang/Exception {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-}
-
-public final class com/github/arthurkun/koo/OCRIOException : com/github/arthurkun/koo/OCRException {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-}
-
-public final class com/github/arthurkun/koo/OCRImageDecodeException : com/github/arthurkun/koo/OCRException {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-}
-
-public final class com/github/arthurkun/koo/OCRImageProcessingException : com/github/arthurkun/koo/OCRException {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-}
-
-public class com/github/arthurkun/koo/OCRInferenceException : com/github/arthurkun/koo/OCRException {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-}
-
-public final class com/github/arthurkun/koo/OCRInitializationException : com/github/arthurkun/koo/OCRException {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-}
-
-public final class com/github/arthurkun/koo/OCRModelOutputException : com/github/arthurkun/koo/OCRInferenceException {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-}
-
-public final class com/github/arthurkun/koo/OCRModelStateException : com/github/arthurkun/koo/OCRInferenceException {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 }
 
 public abstract interface class com/github/arthurkun/koo/OcrApi : java/lang/AutoCloseable {
@@ -145,22 +63,6 @@ public final class com/github/arthurkun/koo/OcrApi$DefaultImpls {
 	public static synthetic fun recognizeText$default (Lcom/github/arthurkun/koo/OcrApi;[BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
-public final class com/github/arthurkun/koo/OcrResult {
-	public static final field $stable I
-	public fun <init> (Lcom/github/arthurkun/koo/DetectedResults;Ljava/lang/String;F)V
-	public final fun component1 ()Lcom/github/arthurkun/koo/DetectedResults;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()F
-	public final fun copy (Lcom/github/arthurkun/koo/DetectedResults;Ljava/lang/String;F)Lcom/github/arthurkun/koo/OcrResult;
-	public static synthetic fun copy$default (Lcom/github/arthurkun/koo/OcrResult;Lcom/github/arthurkun/koo/DetectedResults;Ljava/lang/String;FILjava/lang/Object;)Lcom/github/arthurkun/koo/OcrResult;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getBox ()Lcom/github/arthurkun/koo/DetectedResults;
-	public final fun getScore ()F
-	public final fun getText ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
 public final class com/github/arthurkun/koo/PaddleOcrService : com/github/arthurkun/koo/JvmOcrApi {
 	public static final field $stable I
 	public fun <init> ()V
@@ -184,19 +86,5 @@ public final class com/github/arthurkun/koo/PaddleOcrService : com/github/arthur
 	public fun recognizeText (Lorg/bytedeco/opencv/opencv_core/Mat;Lcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun recognizeText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun recognizeText ([BLcom/github/arthurkun/koo/recognition/RecognitionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
-public final class com/github/arthurkun/koo/RecognitionResult {
-	public static final field $stable I
-	public fun <init> (Ljava/lang/String;F)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()F
-	public final fun copy (Ljava/lang/String;F)Lcom/github/arthurkun/koo/RecognitionResult;
-	public static synthetic fun copy$default (Lcom/github/arthurkun/koo/RecognitionResult;Ljava/lang/String;FILjava/lang/Object;)Lcom/github/arthurkun/koo/RecognitionResult;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getScore ()F
-	public final fun getText ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
 }
 

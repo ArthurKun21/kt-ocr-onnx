@@ -10,7 +10,6 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotNull
-import com.github.arthurkun.koo.imaging.initOpenCV
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import kotlinx.coroutines.test.runTest
@@ -19,15 +18,10 @@ import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.FileNotFoundException
 
-/**
- * Instrumented tests for PaddleOcrService on Android.
- *
- * Tests the PaddleOCR v5 recognition model using shared test assets.
- * Extends [PaddleOcrServiceTestBase] for shared test logic and adds
- * Android-specific tests (e.g., Bitmap detection).
- */
 @RunWith(AndroidJUnit4::class)
+@OptIn(InternalKtOcrONNXApi::class)
 class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     companion object {
         private lateinit var context: Context
@@ -41,7 +35,11 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     }
 
     override fun loadTestResourceBytes(path: String): ByteArray {
-        return Thread.currentThread().contextClassLoader!!.getResourceAsStream(path)!!.readBytes()
+        return loadAndroidTestAssetBytes(path)
+    }
+
+    override fun listTestResourceDirectories(path: String): List<String> {
+        return listAndroidTestAssetDirectories(path)
     }
 
     override fun createPaddleOcrService(
@@ -67,7 +65,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
 
     @Test
     fun testDetectAndRecognizeTextFromTestImageBitmapUsesDefaultRecognitionModel() = runTest {
-        val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
+        val bitmap = loadImageBitmap(defaultOcrTestCase().imagePath)
 
         try {
             val results = (paddleOcrService as AndroidOcrApi).detectAndRecognizeText(bitmap)
@@ -80,7 +78,7 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
 
     @Test
     fun testDetectAndRecognizeTextBitmapUsesExplicitRecognitionSession() = runTest {
-        val bitmap = loadImageBitmap(TEST_IMAGE_PATH)
+        val bitmap = loadImageBitmap(defaultOcrTestCase().imagePath)
         val recognitionModel = CountingRecognitionModel()
         val bitmapService = PaddleOcrService(
             platformContext = context,
@@ -110,3 +108,42 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
 }
 
 private const val TAG = "PaddleOcrServiceTest"
+private const val COMPOSE_TEST_ASSET_PREFIX =
+    "composeResources/com.github.arthurkun.koo.recognition.base.resources/files/"
+
+private fun loadAndroidTestAssetBytes(path: String): ByteArray {
+    val assets = InstrumentationRegistry.getInstrumentation().context.assets
+
+    for (candidatePath in androidTestAssetCandidates(path)) {
+        try {
+            return assets.open(candidatePath).use { it.readBytes() }
+        } catch (_: FileNotFoundException) {
+            // Try the next candidate path.
+        }
+    }
+
+    throw FileNotFoundException("Unable to open Android test asset for path '$path'.")
+}
+
+private fun androidTestAssetCandidates(path: String): List<String> {
+    return listOf(
+        "$COMPOSE_TEST_ASSET_PREFIX$path",
+        path,
+    ).distinct()
+}
+
+private fun listAndroidTestAssetDirectories(path: String): List<String> {
+    val assets = InstrumentationRegistry.getInstrumentation().context.assets
+    return androidTestAssetCandidates(path)
+        .asSequence()
+        .flatMap { root ->
+            assets.list(root).orEmpty().asSequence().mapNotNull { child ->
+                val childPath = "$root/$child"
+                val originalPath = "$path/$child"
+                if (assets.list(childPath).orEmpty().isNotEmpty()) originalPath else null
+            }
+        }
+        .distinct()
+        .sorted()
+        .toList()
+}

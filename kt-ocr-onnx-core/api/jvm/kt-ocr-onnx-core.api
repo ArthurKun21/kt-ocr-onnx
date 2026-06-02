@@ -1,0 +1,175 @@
+public final class com/github/arthurkun/koo/BoxPoint {
+	public fun <init> (II)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun copy (II)Lcom/github/arthurkun/koo/BoxPoint;
+	public static synthetic fun copy$default (Lcom/github/arthurkun/koo/BoxPoint;IIILjava/lang/Object;)Lcom/github/arthurkun/koo/BoxPoint;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getX ()I
+	public final fun getY ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/arthurkun/koo/DetectedResults {
+	public fun <init> (Ljava/util/List;F)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()F
+	public final fun copy (Ljava/util/List;F)Lcom/github/arthurkun/koo/DetectedResults;
+	public static synthetic fun copy$default (Lcom/github/arthurkun/koo/DetectedResults;Ljava/util/List;FILjava/lang/Object;)Lcom/github/arthurkun/koo/DetectedResults;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPoints ()Ljava/util/List;
+	public final fun getScore ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface annotation class com/github/arthurkun/koo/InternalKtOcrONNXApi : java/lang/annotation/Annotation {
+}
+
+public final class com/github/arthurkun/koo/OCRClosedException : com/github/arthurkun/koo/OCRException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public class com/github/arthurkun/koo/OCRException : java/lang/Exception {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class com/github/arthurkun/koo/OCRIOException : com/github/arthurkun/koo/OCRException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class com/github/arthurkun/koo/OCRImageDecodeException : com/github/arthurkun/koo/OCRException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class com/github/arthurkun/koo/OCRImageProcessingException : com/github/arthurkun/koo/OCRException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public class com/github/arthurkun/koo/OCRInferenceException : com/github/arthurkun/koo/OCRException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class com/github/arthurkun/koo/OCRInitializationException : com/github/arthurkun/koo/OCRException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class com/github/arthurkun/koo/OCRModelOutputException : com/github/arthurkun/koo/OCRInferenceException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class com/github/arthurkun/koo/OCRModelStateException : com/github/arthurkun/koo/OCRInferenceException {
+	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public final class com/github/arthurkun/koo/OcrResult {
+	public fun <init> (Lcom/github/arthurkun/koo/DetectedResults;Ljava/lang/String;F)V
+	public final fun component1 ()Lcom/github/arthurkun/koo/DetectedResults;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()F
+	public final fun copy (Lcom/github/arthurkun/koo/DetectedResults;Ljava/lang/String;F)Lcom/github/arthurkun/koo/OcrResult;
+	public static synthetic fun copy$default (Lcom/github/arthurkun/koo/OcrResult;Lcom/github/arthurkun/koo/DetectedResults;Ljava/lang/String;FILjava/lang/Object;)Lcom/github/arthurkun/koo/OcrResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBox ()Lcom/github/arthurkun/koo/DetectedResults;
+	public final fun getScore ()F
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/arthurkun/koo/OpenCVKt {
+	public static final fun initOpenCV ()V
+}
+
+public final class com/github/arthurkun/koo/RecognitionResult {
+	public fun <init> (Ljava/lang/String;F)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()F
+	public final fun copy (Ljava/lang/String;F)Lcom/github/arthurkun/koo/RecognitionResult;
+	public static synthetic fun copy$default (Lcom/github/arthurkun/koo/RecognitionResult;Ljava/lang/String;FILjava/lang/Object;)Lcom/github/arthurkun/koo/RecognitionResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getScore ()F
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/github/arthurkun/koo/imaging/CvImage : java/lang/AutoCloseable {
+	public static final field Companion Lcom/github/arthurkun/koo/imaging/CvImage$Companion;
+	public abstract fun convertToFloat ()Lcom/github/arthurkun/koo/imaging/CvImage;
+	public abstract fun getHeight ()I
+	public abstract fun getPixel (II)[D
+	public abstract fun getTag ()Ljava/lang/String;
+	public abstract fun getWidth ()I
+	public abstract fun isEmpty ()Z
+	public abstract fun resizeTo (II)Lcom/github/arthurkun/koo/imaging/CvImage;
+	public abstract fun toBgrCvImage ()Lcom/github/arthurkun/koo/imaging/CvImage;
+	public abstract fun toRgbCvImage ()Lcom/github/arthurkun/koo/imaging/CvImage;
+}
+
+public final class com/github/arthurkun/koo/imaging/CvImage$Companion {
+	public final fun fromByteArray ([BZLjava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun fromByteArray$default (Lcom/github/arthurkun/koo/imaging/CvImage$Companion;[BZLjava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/github/arthurkun/koo/imaging/CvImageLifecycleKt {
+	public static final fun withBgrCvImage (Lcom/github/arthurkun/koo/imaging/CvImage;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun withCvImageFromByteArray ([BLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun withCvImageFromByteArray$default ([BLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun withRgbCvImage (Lcom/github/arthurkun/koo/imaging/CvImage;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun withRgbCvImageFromByteArray ([BLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun withRgbCvImageFromByteArray$default ([BLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/github/arthurkun/koo/imaging/NativeMat : com/github/arthurkun/koo/imaging/CvImage {
+	public static final field Companion Lcom/github/arthurkun/koo/imaging/NativeMat$Companion;
+	public fun <init> (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;)V
+	public synthetic fun <init> (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun close ()V
+	public synthetic fun convertToFloat ()Lcom/github/arthurkun/koo/imaging/CvImage;
+	public fun convertToFloat ()Lcom/github/arthurkun/koo/imaging/NativeMat;
+	public fun getHeight ()I
+	public final fun getMat ()Lorg/bytedeco/opencv/opencv_core/Mat;
+	public fun getPixel (II)[D
+	public fun getTag ()Ljava/lang/String;
+	public fun getWidth ()I
+	public fun isEmpty ()Z
+	public synthetic fun resizeTo (II)Lcom/github/arthurkun/koo/imaging/CvImage;
+	public fun resizeTo (II)Lcom/github/arthurkun/koo/imaging/NativeMat;
+	public synthetic fun toBgrCvImage ()Lcom/github/arthurkun/koo/imaging/CvImage;
+	public fun toBgrCvImage ()Lcom/github/arthurkun/koo/imaging/NativeMat;
+	public synthetic fun toRgbCvImage ()Lcom/github/arthurkun/koo/imaging/CvImage;
+	public fun toRgbCvImage ()Lcom/github/arthurkun/koo/imaging/NativeMat;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/github/arthurkun/koo/imaging/NativeMat$Companion {
+	public final fun fromByteArray ([BZLjava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun fromByteArray$default (Lcom/github/arthurkun/koo/imaging/NativeMat$Companion;[BZLjava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/github/arthurkun/koo/imaging/NativeMat_jvmKt {
+	public static final fun cropPerspective (Lcom/github/arthurkun/koo/imaging/NativeMat;Lcom/github/arthurkun/koo/DetectedResults;)Lcom/github/arthurkun/koo/imaging/NativeMat;
+}
+
+public final class com/github/arthurkun/koo/imaging/OpenCVSetup_jvmKt {
+	public static final fun initializeOpenCvRuntime ()V
+}
+
+public final class com/github/arthurkun/koo/imaging/PlatformCvImageLifecycle_jvmKt {
+	public static final fun withCvImageFromMat (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun withCvImageFromMat$default (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun withRgbCvImageFromMat (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun withRgbCvImageFromMat$default (Lorg/bytedeco/opencv/opencv_core/Mat;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+

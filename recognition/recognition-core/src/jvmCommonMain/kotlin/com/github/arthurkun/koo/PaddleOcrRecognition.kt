@@ -1,0 +1,411 @@
+package com.github.arthurkun.koo
+
+import ai.onnxruntime.OnnxTensor
+import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
+import com.github.arthurkun.koo.imaging.CvImage
+import com.github.arthurkun.koo.recognition.RecognitionModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import logcat.LogPriority
+import logcat.asLog
+import logcat.logcat
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.time.Duration.Companion.seconds
+
+/**
+ * OCR Recognition using PaddleOCR v5 ONNX model for text recognition.
+ *
+ * This class loads a pre-trained PaddleOCR recognition model and uses ONNX Runtime
+ * for inference. It recognizes text from cropped image regions.
+ *
+ * ## PaddleOCR Reference
+ *
+ * The implementation is based on the PaddleOCR project:
+ * - **Main Repository**: https://github.com/PaddlePaddle/PaddleOCR
+ * - **PP-OCRv5 Documentation**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/doc/doc_en/PP-OCRv5_en.md
+ *
+ * ## Preprocessing Reference
+ *
+ * The image preprocessing logic is derived from the PaddleOCR Python implementation:
+ * - **resize_norm_img function**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/data/imaug/rec_img_aug.py
+ * - **RecResizeImg operator**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/data/imaug/operators.py
+ *
+ * The preprocessing steps are:
+ * 1. Resize image to height of 48 pixels while maintaining aspect ratio
+ * 2. If resized width exceeds 320, cap it at 320
+ * 3. Normalize pixel values: `(x / 255 - 0.5) / 0.5` to get [-1, 1] range
+ * 4. Pad image to width of 320 with zeros (right padding)
+ * 5. Convert from HWC to NCHW format: (1, 3, 48, 320)
+ *
+ * ## CTC Decoding Reference
+ *
+ * The CTC (Connectionist Temporal Classification) decoding logic is based on:
+ * - **CTCLabelDecode**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/postprocess/rec_postprocess.py
+ *
+ * CTC greedy decoding steps:
+ * 1. Get argmax for each timestep in the output sequence
+ * 2. Skip blank tokens (index 0)
+ * 3. Skip consecutive duplicate character indices
+ * 4. Map remaining indices to characters using the dictionary
+ *
+ * ## Dictionary Reference
+ *
+ * The character dictionary format follows PaddleOCR conventions:
+ * - **ppocr_keys_v1.txt**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/utils/ppocr_keys_v1.txt
+ * - **PaddleOCR v5 dictionary**: https://github.com/PaddlePaddle/PaddleOCR/blob/a38c087bcb2579f9ccc2068aea02ec893b1c2311/ppocr/utils/dict/ppocrv5_dict.txt
+ * - Index 0 is reserved for the CTC blank token
+ * - Characters from the dictionary file start at index 1
+ *
+ * ## ONNX Model Export
+ *
+ * For information on exporting PaddleOCR models to ONNX format:
+ * - **Paddle2ONNX**: https://github.com/PaddlePaddle/Paddle2ONNX
+ * - **Export Guide**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/deploy/paddle2onnx/readme.md
+ *
+ * ## Model Input/Output Specification
+ *
+ * - **Input name**: "x"
+ * - **Input shape**: (1, 3, 48, 320) - (batch, channels, height, width)
+ * - **Input range**: [-1, 1] normalized float values
+ * - **Output shape**: (1, sequence_length, num_classes)
+ * - **Output**: Log probabilities for each character class at each timestep
+ */
+@InternalKtOcrONNXApi
+public class PaddleOcrRecognition public constructor(
+    @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
+    private val recognitionModel: RecognitionModel,
+) : AutoCloseable {
+
+    private val dispatcher = Dispatchers.Default.limitedParallelism(1)
+    private val mutex = Mutex()
+
+    private val ortEnvRef = AtomicReference<OrtEnvironment?>(null)
+    private val ortSessionRef = AtomicReference<OrtSession?>(null)
+    private val dictionaryRef = AtomicReference<Map<Int, String>>(emptyMap())
+
+    private val initFailureRef = AtomicReference<Throwable?>(null)
+    private val isInitialized = AtomicBoolean(false)
+    private val isClosed = AtomicBoolean(false)
+
+    private suspend fun initializeModel() = withContext(dispatcher) {
+        mutex.withLock {
+            if (isInitialized.load()) {
+                return@withLock
+            }
+
+            initFailureRef.load()?.let { failure ->
+                throw if (failure is OCRException) {
+                    failure
+                } else {
+                    OCRInitializationException("Recognition model initialization failed", cause = failure)
+                }
+            }
+
+            logcat(TAG) { "Initializing PaddleOCR model..." }
+
+            try {
+                // Load dictionary first
+                val dictionary = loadDictionary()
+                if (dictionary.size <= 1) {
+                    throw OCRInitializationException("Recognition dictionary is empty")
+                }
+                dictionaryRef.store(dictionary)
+                logcat(TAG) { "Dictionary loaded with ${dictionary.size} characters" }
+
+                // Create ONNX Runtime environment
+                val env = OrtEnvironment.getEnvironment()
+                ortEnvRef.store(env)
+
+                // Load model from assets
+                val modelBytes = recognitionModel.loadModelBytes()
+                logcat(TAG) { "Model loaded, size: ${modelBytes.size} bytes" }
+
+                // Create session
+                val session = OrtSession.SessionOptions().use { sessionOptions ->
+                    sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.EXTENDED_OPT)
+                    env.createSession(modelBytes, sessionOptions)
+                }
+                ortSessionRef.store(session)
+
+                isInitialized.store(true)
+                logcat(LogPriority.INFO, TAG) { "PaddleOCR initialized successfully" }
+            } catch (t: Throwable) {
+                if (t is CancellationException) {
+                    cleanup()
+                    throw t
+                }
+
+                initFailureRef.store(t)
+                logcat(LogPriority.ERROR, TAG) { "Failed to initialize PaddleOCR: ${t.asLog()}" }
+                cleanup()
+                throw OCRInitializationException("Failed to initialize recognition model", cause = t)
+            }
+        }
+    }
+
+    /**
+     * Loads the character dictionary from assets.
+     *
+     * The dictionary format follows PaddleOCR conventions:
+     * - **PaddleOCR v5 dictionary**: https://github.com/PaddlePaddle/PaddleOCR/blob/a38c087bcb2579f9ccc2068aea02ec893b1c2311/ppocr/utils/dict/ppocrv5_dict.txt
+     * - **Reference**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/utils/ppocr_keys_v1.txt
+     * - **BaseRecLabelDecode**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/postprocess/rec_postprocess.py
+     *
+     * Index 0 is reserved for blank/CTC token.
+     * Characters from the file start at index 1.
+     * Space character is appended at the end (use_space_char=True convention).
+     *
+     * @return Map of index to character
+     */
+    private suspend fun loadDictionary(): Map<Int, String> {
+        return try {
+            parseDictionary(recognitionModel.loadDictionaryBytes())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, TAG) { "Failed to load dictionary: ${e.asLog()}" }
+            throw OCRIOException("Failed to load recognition dictionary", cause = e)
+        }
+    }
+
+    private fun parseDictionary(dictionaryBytes: ByteArray): Map<Int, String> {
+        val charDict = mutableMapOf<Int, String>()
+        // Index 0 is blank token for CTC decoding
+        charDict[0] = "blank"
+
+        var index = 1
+        dictionaryBytes.inputStream().buffered().reader().useLines { lines ->
+            lines.forEach { line ->
+                // Strip newlines and carriage returns like Python does
+                val char = line.trimEnd('\n', '\r')
+                if (char.isNotEmpty()) {
+                    charDict[index] = char
+                    index++
+                }
+            }
+        }
+
+        // Append space character at the end (use_space_char=True in PaddleOCR)
+        // Reference: BaseRecLabelDecode.__init__ in rec_postprocess.py
+        charDict[index] = " "
+
+        return charDict
+    }
+
+    /**
+     * Ensures the model is initialized before use.
+     *
+     * @throws OCRException if initialization failed
+     */
+    private suspend fun ensureInitialized() {
+        if (isClosed.load()) {
+            throw OCRClosedException("Recognition model is already closed")
+        }
+
+        initFailureRef.load()?.let { failure ->
+            throw if (failure is OCRException) {
+                failure
+            } else {
+                OCRInitializationException("Recognition model initialization failed", cause = failure)
+            }
+        }
+
+        if (!isInitialized.load()) {
+            initializeModel()
+        }
+
+        if (!isInitialized.load()) {
+            throw OCRInitializationException(
+                "Recognition model initialization failed",
+            )
+        }
+    }
+
+    /**
+     * Runs the OCR model on an image.
+     *
+     * @param image Input image (cropped text region)
+     * @return [RecognitionResult] with recognized text and confidence score, or empty result on error
+     */
+    public suspend fun detectText(image: CvImage): RecognitionResult {
+        ensureInitialized()
+
+        return mutex.withLock {
+            withContext(dispatcher) {
+                try {
+                    runInference(image)
+                } catch (t: Throwable) {
+                    if (t is CancellationException) {
+                        throw t
+                    }
+
+                    logcat(LogPriority.ERROR, TAG) { "Error during OCR: ${t.asLog()}" }
+                    throw if (t is OCRException) {
+                        t
+                    } else {
+                        OCRInferenceException("Error during OCR inference", cause = t)
+                    }
+                }
+            }
+        }
+    }
+
+    public suspend fun closeSuspending() {
+        if (!isClosed.compareAndSet(false, true)) {
+            return
+        }
+
+        try {
+            mutex.withLock {
+                withTimeout(15.seconds) {
+                    withContext(dispatcher) {
+                        cleanup()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, TAG) { "Error closing PaddleOCR recognition: ${e.asLog()}" }
+        }
+    }
+
+    /**
+     * Runs inference on the preprocessed image.
+     *
+     * @param inputImage Input CvImage (cropped text region)
+     * @return [RecognitionResult] with recognized text and confidence score
+     */
+    private fun runInference(inputImage: CvImage): RecognitionResult {
+        val session = ortSessionRef.load()
+            ?: throw OCRModelStateException(
+                "Recognition session not initialized",
+            )
+        val env = ortEnvRef.load()
+            ?: throw OCRModelStateException(
+                "Recognition environment not initialized",
+            )
+        val dictionary = dictionaryRef.load()
+        if (dictionary.isEmpty()) {
+            throw OCRModelStateException(
+                "Recognition dictionary not loaded",
+            )
+        }
+
+        // Preprocess image
+        val inputTensor = preprocessRecognitionImage(inputImage, env)
+
+        // Run inference
+        val output = try {
+            session.run(mapOf("x" to inputTensor))
+        } finally {
+            inputTensor.close()
+        }
+
+        return try {
+            val outputTensor = output.get(0).value as? Array<*>
+                ?: throw OCRModelOutputException(
+                    "Unexpected recognition output type",
+                )
+
+            // Decode result using CTC decoding
+            ctcDecode(outputTensor, dictionary)
+        } finally {
+            output.close()
+        }
+    }
+
+    /**
+     * Decodes the model output using CTC (Connectionist Temporal Classification) greedy decoding.
+     *
+     * Matches the CTCLabelDecode postprocess function from PaddleOCR Python:
+     * - **Source**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/postprocess/rec_postprocess.py
+     *
+     * Steps:
+     * 1. Get argmax for each timestep
+     * 2. Skip blank tokens (index 0)
+     * 3. Skip consecutive duplicate indices
+     *
+     * @param output Raw model output with shape [1, seq_len, num_classes]
+     * @param dictionary Character dictionary (index -> character)
+     * @return Decoded text string
+     */
+    @Suppress("UNCHECKED_CAST")
+    private fun ctcDecode(output: Array<*>, dictionary: Map<Int, String>): RecognitionResult {
+        val charList = mutableListOf<String>()
+        val confidences = mutableListOf<Float>()
+
+        // Output shape is [1, seq_len, num_classes]
+        val batchOutput = output.firstOrNull() as? Array<*>
+            ?: throw OCRModelOutputException(
+                "Recognition output missing batch dimension",
+            )
+
+        var prevIdx = -1
+
+        for (timestepRaw in batchOutput) {
+            val timestep = timestepRaw as? FloatArray ?: continue
+            if (timestep.isEmpty()) continue
+
+            // Find the index with maximum logit (argmax)
+            var maxIdx = 0
+            var maxVal = timestep[0]
+            for (i in 1 until timestep.size) {
+                if (timestep[i] > maxVal) {
+                    maxVal = timestep[i]
+                    maxIdx = i
+                }
+            }
+
+            // CTC decoding: skip blanks (0) and consecutive duplicates
+            if (maxIdx != prevIdx && maxIdx != 0) {
+                dictionary[maxIdx]?.let { char ->
+                    charList.add(char)
+                    confidences.add(maxVal)
+                }
+            }
+
+            prevIdx = maxIdx
+        }
+
+        val text = charList.joinToString("")
+        val score = if (confidences.isEmpty()) 0f else confidences.average().toFloat()
+        return RecognitionResult(text, score)
+    }
+
+    /**
+     * Cleans up ONNX resources.
+     */
+    private fun cleanup() {
+        try {
+            ortSessionRef.load()?.close()
+            ortSessionRef.store(null)
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, TAG) { "Failed to close session: ${e.asLog()}" }
+        }
+
+        try {
+            ortEnvRef.load()?.close()
+            ortEnvRef.store(null)
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, TAG) { "Failed to close environment: ${e.asLog()}" }
+        }
+
+        dictionaryRef.store(emptyMap())
+        isInitialized.store(false)
+    }
+
+    public override fun close() {
+        runBlocking {
+            closeSuspending()
+        }
+    }
+}
+
+private const val TAG = "PaddleOcrRecognition"

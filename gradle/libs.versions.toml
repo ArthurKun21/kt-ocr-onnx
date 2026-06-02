@@ -52,6 +52,7 @@ compose-resources = { module = "org.jetbrains.compose.components:components-reso
 # GRADLE LIBRARIES
 #
 spotless-gradle = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
+vanniktech-maven-publish-gradle = { group = "com.vanniktech", name = "gradle-maven-publish-plugin", version.ref = "vanniktech-maven-publish" }
 
 androidx-gradle = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }

@@ -6,15 +6,11 @@ import com.github.arthurkun.koo.imaging.NativeMat
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import kotlinx.coroutines.test.runTest
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.test.Test
 
-/**
- * JVM tests for PaddleOcrService.
- *
- * Tests the PaddleOCR v5 recognition model using shared test assets.
- * Extends [PaddleOcrServiceTestBase] for shared test logic.
- * Test assets are loaded from the JVM classpath resources.
- */
+@OptIn(InternalKtOcrONNXApi::class)
 class PaddleOcrServiceJvmTest : PaddleOcrServiceTestBase() {
 
     override fun createPaddleOcrService(
@@ -37,9 +33,23 @@ class PaddleOcrServiceJvmTest : PaddleOcrServiceTestBase() {
         return inputStream.readBytes()
     }
 
+    override fun listTestResourceDirectories(path: String): List<String> {
+        val resource = requireNotNull(Thread.currentThread().contextClassLoader?.getResource(path)) {
+            "Test resource directory not found: $path"
+        }
+        val directory = Paths.get(resource.toURI())
+        return Files.list(directory).use { paths ->
+            paths
+                .filter { Files.isDirectory(it) }
+                .map { "$path/${it.fileName}" }
+                .sorted()
+                .toList()
+        }
+    }
+
     @Test
     fun testDetectAndRecognizeTextMatUsesDefaultRecognitionModel() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
+        val bytes = loadTestResourceBytes(defaultOcrTestCase().imagePath)
         val image = NativeMat.fromByteArray(bytes, isColor = true, tag = "jvm-test")
 
         try {
@@ -52,7 +62,7 @@ class PaddleOcrServiceJvmTest : PaddleOcrServiceTestBase() {
 
     @Test
     fun testDetectAndRecognizeTextMatUsesExplicitRecognitionSession() = runTest {
-        val bytes = loadTestResourceBytes(TEST_IMAGE_PATH)
+        val bytes = loadTestResourceBytes(defaultOcrTestCase().imagePath)
         val recognitionModel = CountingRecognitionModel()
         val image = NativeMat.fromByteArray(bytes, isColor = true, tag = "jvm-test")
 

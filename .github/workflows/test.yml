@@ -50,7 +50,7 @@ jobs:
 
       - name: Run Kt-OCR-ONNX tests
         run: |
-          ./gradlew :kt-ocr-onnx:jvmTest
+          ./gradlew :kt-ocr-onnx:jvmTest :kt-ocr-onnx-detection:jvmTest :kt-ocr-onnx-recognition:jvmTest
 
   Test-Android:
     timeout-minutes: 15
@@ -100,4 +100,8 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: ./gradlew :kt-ocr-onnx:connectedAndroidDeviceTest
+          script: >-
+            ./gradlew
+            :kt-ocr-onnx:connectedAndroidDeviceTest
+            :kt-ocr-onnx-detection:connectedAndroidDeviceTest
+            :kt-ocr-onnx-recognition:connectedAndroidDeviceTest
