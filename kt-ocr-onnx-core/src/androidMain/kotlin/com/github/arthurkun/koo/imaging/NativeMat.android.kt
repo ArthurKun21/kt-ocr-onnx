@@ -20,6 +20,7 @@ import org.opencv.core.MatOfByte
 import org.opencv.core.MatOfPoint2f
 import org.opencv.core.Point
 import org.opencv.core.Size
+import org.opencv.geometry.Geometry
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
 import kotlin.math.max
@@ -282,7 +283,7 @@ public fun NativeMat.cropPerspective(box: DetectedResults): NativeMat {
         Point(0.0, (dstH - 1).toDouble()),
     )
 
-    val transform = Imgproc.getPerspectiveTransform(srcPts, dstPts)
+    val transform = Geometry.getPerspectiveTransform(srcPts, dstPts)
     val result = Mat()
     Imgproc.warpPerspective(
         mat,

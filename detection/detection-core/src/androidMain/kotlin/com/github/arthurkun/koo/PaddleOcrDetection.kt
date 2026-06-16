@@ -8,6 +8,7 @@ import org.opencv.core.MatOfPoint
 import org.opencv.core.MatOfPoint2f
 import org.opencv.core.Point
 import org.opencv.core.Scalar
+import org.opencv.geometry.Geometry
 import org.opencv.imgproc.Imgproc
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -59,7 +60,7 @@ public class PaddleOcrDetection(
             val contour2f = MatOfPoint2f(*contour.toArray())
 
             // Get minimum area rotated rectangle
-            val rotatedRect = Imgproc.minAreaRect(contour2f)
+            val rotatedRect = Geometry.minAreaRect(contour2f)
             contour2f.release()
 
             val rectPoints = arrayOfNulls<Point>(4)
@@ -91,7 +92,7 @@ public class PaddleOcrDetection(
 
             // Re-fit minimum area rect on expanded polygon
             val expandedMat = MatOfPoint2f(*expanded.map { Point(it[0], it[1]) }.toTypedArray())
-            val expandedRect = Imgproc.minAreaRect(expandedMat)
+            val expandedRect = Geometry.minAreaRect(expandedMat)
             expandedMat.release()
 
             val expandedSside = min(expandedRect.size.width, expandedRect.size.height).toFloat()
