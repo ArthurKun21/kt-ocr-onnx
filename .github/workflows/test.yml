@@ -34,7 +34,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v6
@@ -59,7 +59,7 @@ jobs:
       api-level: 35
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Enable KVM
         run: |
