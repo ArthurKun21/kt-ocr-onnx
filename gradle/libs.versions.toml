@@ -22,7 +22,7 @@ logcat = "0.4"
 
 vanniktech-maven-publish = "0.37.0"
 
-spotless = "8.7.0"
+spotless = "8.8.0"
 ktlint-core = "1.8.0"
 
 [libraries]
