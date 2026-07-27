@@ -10,7 +10,7 @@ kotlinx_io = "0.9.1"
 
 opencv_android = "5.0.0.1"
 javacv = "4.13.0-1.5.13"
-onnxruntime = "1.27.0"
+onnxruntime = "1.28.0"
 clipper2 = "2.0.1"
 
 assertk = "0.28.1"
