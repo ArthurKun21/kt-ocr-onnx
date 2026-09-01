@@ -38,7 +38,7 @@ kotlin {
             implementation(project(":recognition:recognition-core"))
         }
 
-        val jvmCommonMain by creating {
+        val jvmCommonMain = create("jvmCommonMain") {
             dependsOn(commonMain.get())
             dependencies {
                 // Shared sources require ORT symbols, but the concrete runtime must be
