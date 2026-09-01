@@ -39,5 +39,10 @@ gradlePlugin {
             id = "koo.maven.publish"
             implementationClass = "MavenPublishConventionPlugin"
         }
+
+        register("opencvJvmPlatform") {
+            id = "koo.opencv.jvm.platform"
+            implementationClass = "OpencvJvmConventionPlugin"
+        }
     }
 }

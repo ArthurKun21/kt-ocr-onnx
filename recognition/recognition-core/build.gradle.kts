@@ -3,6 +3,7 @@ import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
 plugins {
     id("koo.library.kmp")
     id("koo.maven.publish")
+    id("koo.opencv.jvm.platform")
 }
 
 kotlin {
@@ -18,7 +19,7 @@ kotlin {
             api(project(":recognition:model-core"))
         }
 
-        val jvmCommonMain by creating {
+        val jvmCommonMain = create("jvmCommonMain") {
             dependsOn(commonMain.get())
             dependencies {
                 compileOnly(libs.onnxruntime.jvm)
@@ -37,7 +38,6 @@ kotlin {
             dependsOn(jvmCommonMain)
             dependencies {
                 implementation(libs.onnxruntime.jvm)
-                implementation(libs.opencv.jvm)
             }
         }
     }

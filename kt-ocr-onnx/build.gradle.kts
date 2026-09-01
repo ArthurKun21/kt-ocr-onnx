@@ -1,6 +1,5 @@
 import com.android.build.gradle.tasks.MergeSourceSetFolders
 import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
-import org.gradle.api.tasks.Copy
 
 val sharedTestAssetsDir = "src/sharedTestAssets"
 val sharedTestAssets = layout.projectDirectory.dir(sharedTestAssetsDir)
@@ -10,6 +9,7 @@ plugins {
     id("koo.library.kmp.tests")
     id("koo.compose")
     id("koo.maven.publish")
+    id("koo.opencv.jvm.platform")
 }
 
 kotlin {
@@ -38,7 +38,7 @@ kotlin {
             implementation(project(":recognition:recognition-core"))
         }
 
-        val jvmCommonMain by creating {
+        val jvmCommonMain = create("jvmCommonMain") {
             dependsOn(commonMain.get())
             dependencies {
                 // Shared sources require ORT symbols, but the concrete runtime must be
@@ -60,7 +60,6 @@ kotlin {
             dependsOn(jvmCommonMain)
             dependencies {
                 implementation(libs.onnxruntime.jvm)
-                implementation(libs.opencv.jvm)
             }
         }
 
