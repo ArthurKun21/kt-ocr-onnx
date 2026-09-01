@@ -22,7 +22,7 @@ kotlin {
             implementation(libs.compose.resources)
         }
 
-        val jvmCommonMain by creating {
+        val jvmCommonMain = create("jvmCommonMain") {
             dependsOn(commonMain.get())
             dependencies {
                 compileOnly(libs.onnxruntime.jvm)
