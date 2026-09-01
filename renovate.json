@@ -3,5 +3,16 @@
   "extends": [
     "config:recommended"
   ],
-  "semanticCommits": "disabled"
+  "semanticCommits": "disabled",
+  "packageRules": [
+    {
+      "description": "The bytedeco presets are released in lockstep; update javacpp, openblas and opencv in one PR",
+      "matchPackageNames": [
+        "org.bytedeco:javacpp",
+        "org.bytedeco:openblas",
+        "org.bytedeco:opencv"
+      ],
+      "groupName": "bytedeco JavaCV"
+    }
+  ]
 }
