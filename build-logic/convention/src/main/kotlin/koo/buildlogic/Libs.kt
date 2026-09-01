@@ -16,5 +16,8 @@ fun VersionCatalog.library(name: String): Provider<MinimalExternalModuleDependen
 fun VersionCatalog.pluginId(name: String): String =
     findPlugin(name).get().get().pluginId
 
+fun VersionCatalog.moduleWithVersion(name: String): String =
+    library(name).get().let { "${it.module}:${it.versionConstraint.requiredVersion}" }
+
 fun VersionCatalog.version(name: String): String =
     findVersion(name).get().requiredVersion

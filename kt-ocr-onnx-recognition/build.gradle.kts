@@ -1,6 +1,5 @@
 import com.android.build.gradle.tasks.MergeSourceSetFolders
 import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
-import org.gradle.api.tasks.Copy
 
 val sharedTestAssetsDir = "../kt-ocr-onnx/src/sharedTestAssets"
 val sharedTestAssets = layout.projectDirectory.dir(sharedTestAssetsDir)
@@ -9,6 +8,7 @@ plugins {
     id("koo.library.kmp")
     id("koo.library.kmp.tests")
     id("koo.maven.publish")
+    id("koo.opencv.jvm.platform")
 }
 
 kotlin {
@@ -36,10 +36,6 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.opencv.android)
-        }
-
-        jvmMain.dependencies {
-            implementation(libs.opencv.jvm)
         }
 
         jvmTest {

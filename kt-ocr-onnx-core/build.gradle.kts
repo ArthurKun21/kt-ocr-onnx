@@ -3,6 +3,7 @@ import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
 plugins {
     id("koo.library.kmp")
     id("koo.maven.publish")
+    id("koo.opencv.jvm.platform")
 }
 
 kotlin {
@@ -18,10 +19,6 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.opencv.android)
-        }
-
-        jvmMain.dependencies {
-            implementation(libs.opencv.jvm)
         }
     }
 }

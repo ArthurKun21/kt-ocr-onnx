@@ -34,7 +34,7 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test" }
 willowtreeapps-assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assertk" }
 
 opencv-android = { group = "org.opencv", name = "opencv", version.ref = "opencv_android" }
-opencv-jvm = { group = "org.bytedeco", name = "opencv-platform", version.ref = "javacv" }
+opencv-jvm = { group = "org.bytedeco", name = "opencv", version.ref = "javacv" }
 onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntime" }
 onnxruntime-jvm = { module = "com.microsoft.onnxruntime:onnxruntime", version.ref = "onnxruntime" }
 clipper2-java = { module = "com.github.micycle1:Clipper2-java", version.ref = "clipper2" }

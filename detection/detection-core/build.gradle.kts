@@ -4,6 +4,7 @@ plugins {
     id("koo.library.kmp")
     id("koo.compose")
     id("koo.maven.publish")
+    id("koo.opencv.jvm.platform")
 }
 
 kotlin {
@@ -41,7 +42,6 @@ kotlin {
             dependsOn(jvmCommonMain)
             dependencies {
                 implementation(libs.onnxruntime.jvm)
-                implementation(libs.opencv.jvm)
             }
         }
     }
