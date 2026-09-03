@@ -16,8 +16,8 @@
 
 ## Architecture
 
-- Kotlin Multiplatform OCR library for Android + JVM using PaddleOCR v5 ONNX Runtime and OpenCV; no
-  app UI or database layer.
+- Kotlin Multiplatform OCR library for Android + JVM using PaddleOCR ONNX models (PP-OCRv5
+  detection, PP-OCRv6 recognition) and OpenCV; no app UI or database layer.
 - Public aggregator module `:kt-ocr-onnx` exposes `OcrApi`, `PaddleOcrService`, `JvmOcrApi`,
   `AndroidOcrApi`, results, and `OCRException` types.
 - Split artifacts: `:kt-ocr-onnx-core` has shared models/imaging primitives;
@@ -25,7 +25,9 @@
 - Runtime internals live in `:detection`, `:recognition:recognition-core`,
   `:recognition:model-core`, and `:recognition:model-base`.
 - Models/resources: detection ONNX in `detection/src/commonMain/composeResources/files/base/`;
-  recognition ONNX + dict in `recognition/model-base/src/commonMain/composeResources/files/`.
+  recognition ONNX + dict in `recognition/model-base/src/commonMain/composeResources/files/`
+  (PP-OCRv6 small); legacy PP-OCRv5 recognition models live in `recognition/model-v5-base` and
+  `recognition/model-v5-kr` (Korean).
 - Source sets use `commonMain`, `androidMain`, `jvmMain`, and shared `jvmCommonMain`; shared test
   image assets live in `kt-ocr-onnx/src/sharedTestAssets/`.
 - Platform boundaries use `expect`/`actual`; `NativeMat`/`CvImage` wrap platform OpenCV and should

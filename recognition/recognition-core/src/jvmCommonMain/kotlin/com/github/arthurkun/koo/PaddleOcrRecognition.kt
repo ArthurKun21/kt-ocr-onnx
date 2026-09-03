@@ -21,7 +21,7 @@ import kotlin.concurrent.atomics.AtomicReference
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * OCR Recognition using PaddleOCR v5 ONNX model for text recognition.
+ * OCR Recognition using PaddleOCR v6 ONNX model for text recognition.
  *
  * This class loads a pre-trained PaddleOCR recognition model and uses ONNX Runtime
  * for inference. It recognizes text from cropped image regions.
@@ -30,7 +30,8 @@ import kotlin.time.Duration.Companion.seconds
  *
  * The implementation is based on the PaddleOCR project:
  * - **Main Repository**: https://github.com/PaddlePaddle/PaddleOCR
- * - **PP-OCRv5 Documentation**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/doc/doc_en/PP-OCRv5_en.md
+ * - **PP-OCRv6 Documentation**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/docs/version3.x/algorithm/PP-OCRv6/PP-OCRv6.md
+ * - **PP-OCRv6_small_rec ONNX model**: https://huggingface.co/PaddlePaddle/PP-OCRv6_small_rec_onnx
  *
  * ## Preprocessing Reference
  *
@@ -60,7 +61,7 @@ import kotlin.time.Duration.Companion.seconds
  *
  * The character dictionary format follows PaddleOCR conventions:
  * - **ppocr_keys_v1.txt**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/utils/ppocr_keys_v1.txt
- * - **PaddleOCR v5 dictionary**: https://github.com/PaddlePaddle/PaddleOCR/blob/a38c087bcb2579f9ccc2068aea02ec893b1c2311/ppocr/utils/dict/ppocrv5_dict.txt
+ * - **PaddleOCR v6 dictionary**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/utils/dict/ppocrv6_dict.txt
  * - Index 0 is reserved for the CTC blank token
  * - Characters from the dictionary file start at index 1
  *
@@ -155,7 +156,7 @@ public class PaddleOcrRecognition public constructor(
      * Loads the character dictionary from assets.
      *
      * The dictionary format follows PaddleOCR conventions:
-     * - **PaddleOCR v5 dictionary**: https://github.com/PaddlePaddle/PaddleOCR/blob/a38c087bcb2579f9ccc2068aea02ec893b1c2311/ppocr/utils/dict/ppocrv5_dict.txt
+     * - **PaddleOCR v6 dictionary**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/utils/dict/ppocrv6_dict.txt
      * - **Reference**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/utils/ppocr_keys_v1.txt
      * - **BaseRecLabelDecode**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/postprocess/rec_postprocess.py
      *
