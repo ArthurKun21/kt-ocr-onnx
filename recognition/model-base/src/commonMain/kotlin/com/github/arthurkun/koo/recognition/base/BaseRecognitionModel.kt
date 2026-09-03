@@ -17,4 +17,4 @@ public object BaseRecognitionModel : RecognitionModel {
 }
 
 private const val MODEL_PATH = "files/PP-OCRv6_small_rec.onnx"
-private const val DICT_PATH = "files/ppocrv6_dict"
+private const val DICT_PATH = "files/ppocrv6_dict.txt"
