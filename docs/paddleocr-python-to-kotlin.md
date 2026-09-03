@@ -39,7 +39,7 @@ exactly that:
 | # | Question | Where the answer lives (Python) | Where it is implemented (this repo) |
 | --- | --- | --- | --- |
 | 1 | Input H/W and resize rule | yml `Eval: RecResizeImg: image_shape` (or `d2s_train_image_shape`) + `tools/infer/predict_rec.py::resize_norm_img` | `RecognitionDefaults.kt` (`TARGET_HEIGHT`, `TARGET_WIDTH`), `RecognitionImagePreprocessor` actuals |
-| 2 | Normalization | rec: hard-coded `(x/255 - 0.5) / 0.5` in `resize_norm_img`; det: yml `NormalizeImage: mean/std` | rec preprocessor; `DET_MEAN`/`DET_STD` in `DetectionDefaults.kt` |
+| 2 | Normalization | rec: hard-coded `(x/255 - 0.5) / 0.5` in `resize_norm_img`; det: yml `NormalizeImage: mean/std` | rec preprocessor; `detMean`/`detStd` on `DetectionModel` |
 | 3 | Dictionary + space char | yml `character_dict_path`, `use_space_char` | `model-base`/`model-v5-*` resource consts + `parseDictionary` |
 | 4 | Postprocess algorithm | yml `PostProcess: name` (rec: `CTCLabelDecode`) | `PaddleOcrRecognition.ctcDecode` |
 | 5 | ONNX graph I/O | export artifacts (verify with the snippet in §7 step 2) | input name `"x"` in `PaddleOcrRecognition.runInference` |
@@ -176,15 +176,19 @@ Detection differs from recognition in two important ways and is worth reading as
   **max** side at 960, then round both sides to the nearest multiple of 32 with a floor of 32
   (`max(int(round(side / 32) * 32), 32)`). Python also guards `max_side_limit=4000` after the
   ratio resize; Kotlin (`PaddleOcrDetectionBase.preprocessImage`) omits that guard (only relevant
-  for very large images).
+  for very large images). The cap value comes from `DetectionModel.detLimitSideLen` (default 960,
+  mirroring the Python driver default).
 - **Normalization** (`NormalizeImage` in the det yml): ImageNet mean/std
   `(x/255 - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]` applied in **RGB** order, even though
   `DecodeImage` loads BGR. This is the opposite of recognition, which keeps BGR throughout.
   The Kotlin service converts crops to RGB upstream and `preprocessImage` comments this explicitly.
 - **DB postprocess** (`ppocr/postprocess/db_postprocess.py`): threshold → binary map → contours →
   `box_score_fast` → unclip (Clipper offset) → rescale. Kotlin: `dbPostProcess` in
-  `detection-core` (`jvmMain` uses JavaCPP OpenCV, `androidMain` uses `org.opencv.*`), with
-  constants in `DetectionDefaults.kt`.
+  `detection-core` (`jvmMain` uses JavaCPP OpenCV, `androidMain` uses `org.opencv.*`). The DB
+  parameters are per-model properties on `DetectionModel` (`detThresh`, `detBoxThresh`,
+  `detMaxCandidates`, `detUnclipRatio`, `detMinSize`) whose defaults mirror
+  `DBPostProcess.__init__`; each bundled model overrides them with its config-yml values
+  (PP-OCRv6 small: 0.2 / 0.45 / 3000 / 1.4; PP-OCRv5 mobile: 0.3 / 0.6 / 1000 / 1.5).
 
 ## 6. Gotchas checklist
 
@@ -332,19 +336,20 @@ What was actually checked for the v6 switch (PR #18104), in order:
 
 ## 9. Known discrepancies found while writing this guide
 
-Pre-existing items noticed during the v6 work — none affect recognition; listed here so a future
-verification session doesn't mistake them for porting errors:
+**Resolved (2026-09-04, PP-OCRv6 detection switch):** the aggregator module's dead
+`kt-ocr-onnx/Defaults.kt` copy of the detection constants claimed `DET_LIMIT_SIDE_LEN = 736` with
+`limit_type="min"` semantics, while the real runtime value in `detection-core` was 960 with
+max-side semantics — matching the Python driver. The dead copy is deleted, and the resize cap is
+now the per-model `DetectionModel.detLimitSideLen` property (default 960, max-side).
 
-- **Det resize limit.** `PaddleOcrDetectionBase.preprocessImage` caps the max side at
-  `DET_LIMIT_SIDE_LEN = 736` (`DetectionDefaults.kt`), while the Python inference driver defaults
-  to 960 (`det_limit_type="max"`). Its own KDoc says 960, and `DetectionDefaults.kt`'s comment
-  says `limit_type="min"` — the implemented behavior is max-side capping at 736. Either the
-  constant or the comments should move; smaller inputs trade a little accuracy for speed.
-- **Det limit-type semantics.** Related to the above: `Defaults.kt` (pipeline module) documents
-  `DetResizeForTest` as `limit_type="min"` (scale small images *up*), but the code implements the
-  max-side rule. `DetResizeForTest` with no kwargs defaults to min/736 in
-  `ppocr/data/imaug/operators.py`, so the yml training path and the `tools/infer` path genuinely
-  differ upstream too.
+Remaining known differences:
+
+- **DetResizeForTest default upstream.** `DetResizeForTest` with no kwargs defaults to
+  min/736 in `ppocr/data/imaug/operators.py`, so the yml training/eval path and the
+  `tools/infer` path genuinely differ upstream too (min scales small images *up*; max caps large
+  images *down*).
+- **`max_side_limit` guard.** Python clamps the resized image to 4000 after the ratio resize;
+  Kotlin omits that guard (only relevant for very large images).
 
 ## 10. File map
 
@@ -352,8 +357,8 @@ verification session doesn't mistake them for porting errors:
 | --- | --- | --- |
 | Rec preprocessing | `tools/infer/predict_rec.py::TextRecognizer.resize_norm_img` | `recognition/recognition-core/src/jvmCommonMain/.../RecognitionImagePreprocessor.kt` (expect) + `jvmMain` / `androidMain` actuals; constants in `recognition-core/src/commonMain/.../RecognitionDefaults.kt` |
 | Rec decode | `ppocr/postprocess/rec_postprocess.py::CTCLabelDecode` (+ `BaseRecLabelDecode`) | `recognition/recognition-core/src/jvmCommonMain/.../PaddleOcrRecognition.kt::parseDictionary` / `ctcDecode` |
-| Model + dict bytes | exported inference model directory | `recognition/model-base` (v6), `recognition/model-v5-base`, `recognition/model-v5-kr` (Korean) — all implement `recognition/model-core`'s `RecognitionModel` |
-| Det preprocessing | `tools/infer/predict_det.py`, `ppocr/data/imaug/operators.py::DetResizeForTest`, yml `NormalizeImage` | `detection/detection-core/src/jvmCommonMain/.../PaddleOcrDetectionBase.kt::preprocessImage`; constants in `detection-core/src/commonMain/.../DetectionDefaults.kt` |
-| Det postprocess | `ppocr/postprocess/db_postprocess.py` | `detection/detection-core/src/jvmMain/.../PaddleOcrDetection.kt::dbPostProcess` (+ `androidMain` actual) |
-| Config constants | `configs/rec/**`, `configs/det/**` ymls | `kt-ocr-onnx/src/commonMain/.../Defaults.kt`, `DetectionDefaults.kt`, `RecognitionDefaults.kt` |
+| Model + dict bytes | exported inference model directory | detection: `detection/model-base` (v6), `detection/model-v5-base` — implement `detection/model-core`'s `DetectionModel`; recognition: `recognition/model-base` (v6), `recognition/model-v5-base`, `recognition/model-v5-kr` (Korean) |
+| Det preprocessing | `tools/infer/predict_det.py`, `ppocr/data/imaug/operators.py::DetResizeForTest`, yml `NormalizeImage` | `detection/detection-core/src/jvmCommonMain/.../PaddleOcrDetectionBase.kt::preprocessImage`; resize/norm parameters are `DetectionModel` properties (`detLimitSideLen`, `detRoundTo`, `detMean`, `detStd`) |
+| Det postprocess | `ppocr/postprocess/db_postprocess.py` | `detection/detection-core/src/jvmMain/.../PaddleOcrDetection.kt::dbPostProcess` (+ `androidMain` actual); DB parameters are `DetectionModel` properties (`detThresh`, `detBoxThresh`, `detMaxCandidates`, `detUnclipRatio`, `detMinSize`) |
+| Config constants | `configs/rec/**`, `configs/det/**` ymls | recognition: `RecognitionDefaults.kt` + `kt-ocr-onnx/Defaults.kt`; detection: per-model `DetectionModel` property overrides |
 | Golden tests | — | `kt-ocr-onnx/src/sharedTestAssets/ocr/` + `PaddleOcrServiceTestBase` / `PaddleOcrRecognitionServiceTestBase` |
