@@ -1,5 +1,7 @@
 package com.github.arthurkun.koo
 
+import com.github.arthurkun.koo.detection.DetectionModel
+import com.github.arthurkun.koo.detection.base.BaseDetectionModel
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import org.bytedeco.opencv.opencv_core.Mat
@@ -14,9 +16,13 @@ public interface JvmOcrApi : OcrApi {
      * Detects text regions in the provided bytedeco OpenCV [mat].
      *
      * @param mat The bytedeco OpenCV Mat image to detect text regions in.
+     * @param detectionModel The detection model to use.
      * @return A list of [DetectedResults] describing the detected text regions.
      */
-    public suspend fun detectText(mat: Mat): List<DetectedResults>
+    public suspend fun detectText(
+        mat: Mat,
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<DetectedResults>
 
     /**
      * Recognizes text from the provided bytedeco OpenCV [mat].
@@ -35,10 +41,12 @@ public interface JvmOcrApi : OcrApi {
      *
      * @param mat The bytedeco OpenCV Mat image to perform full OCR on.
      * @param recognitionModel The recognition model and dictionary to use.
+     * @param detectionModel The detection model to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         mat: Mat,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
+        detectionModel: DetectionModel = BaseDetectionModel,
     ): List<OcrResult>
 }

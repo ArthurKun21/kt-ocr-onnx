@@ -1,5 +1,7 @@
 package com.github.arthurkun.koo
 
+import com.github.arthurkun.koo.detection.DetectionModel
+import com.github.arthurkun.koo.detection.base.BaseDetectionModel
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import kotlinx.io.Source
@@ -22,9 +24,13 @@ public interface OcrApi : AutoCloseable {
      * Detects text regions in the provided image.
      *
      * @param byteArray The raw image bytes to be processed.
+     * @param detectionModel The detection model to use.
      * @return A list of [DetectedResults] describing the detected text regions.
      */
-    public suspend fun detectText(byteArray: ByteArray): List<DetectedResults>
+    public suspend fun detectText(
+        byteArray: ByteArray,
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<DetectedResults>
 
     /**
      * Recognizes text from a single image, typically a cropped text-line region.
@@ -43,21 +49,26 @@ public interface OcrApi : AutoCloseable {
      *
      * @param byteArray The raw image bytes to be processed.
      * @param recognitionModel The recognition model and dictionary to use.
+     * @param detectionModel The detection model to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
+        detectionModel: DetectionModel = BaseDetectionModel,
     ): List<OcrResult>
 
     /**
      * Detects text regions in the provided image read from a [Source].
      *
      * @param source The [Source] to read image bytes from.
+     * @param detectionModel The detection model to use.
      * @return A list of [DetectedResults] describing the detected text regions.
      */
-    public suspend fun detectText(source: Source): List<DetectedResults> =
-        detectText(source.readByteArray())
+    public suspend fun detectText(
+        source: Source,
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<DetectedResults> = detectText(source.readByteArray(), detectionModel)
 
     /**
      * Recognizes text from a single image read from a [Source].
@@ -76,21 +87,26 @@ public interface OcrApi : AutoCloseable {
      *
      * @param source The [Source] to read image bytes from.
      * @param recognitionModel The recognition model and dictionary to use.
+     * @param detectionModel The detection model to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         source: Source,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-    ): List<OcrResult> = detectAndRecognizeText(source.readByteArray(), recognitionModel)
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<OcrResult> = detectAndRecognizeText(source.readByteArray(), recognitionModel, detectionModel)
 
     /**
      * Detects text regions in the image at the specified file path.
      *
      * @param path The file path string of the image to be processed.
+     * @param detectionModel The detection model to use.
      * @return A list of [DetectedResults] describing the detected text regions.
      */
-    public suspend fun detectText(path: String): List<DetectedResults> =
-        detectText(Path(path))
+    public suspend fun detectText(
+        path: String,
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<DetectedResults> = detectText(Path(path), detectionModel)
 
     /**
      * Recognizes text from the image at the specified file path.
@@ -109,22 +125,28 @@ public interface OcrApi : AutoCloseable {
      *
      * @param path The file path string of the image to be processed.
      * @param recognitionModel The recognition model and dictionary to use.
+     * @param detectionModel The detection model to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         path: String,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
-    ): List<OcrResult> = detectAndRecognizeText(Path(path), recognitionModel)
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<OcrResult> = detectAndRecognizeText(Path(path), recognitionModel, detectionModel)
 
     /**
      * Detects text regions in the image at the specified [Path].
      *
      * @param path The [Path] of the image to be processed.
+     * @param detectionModel The detection model to use.
      * @return A list of [DetectedResults] describing the detected text regions.
      */
-    public suspend fun detectText(path: Path): List<DetectedResults> {
+    public suspend fun detectText(
+        path: Path,
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<DetectedResults> {
         val bytes = SystemFileSystem.source(path).buffered().use { it.readByteArray() }
-        return detectText(bytes)
+        return detectText(bytes, detectionModel)
     }
 
     /**
@@ -147,13 +169,15 @@ public interface OcrApi : AutoCloseable {
      *
      * @param path The [Path] of the image to be processed.
      * @param recognitionModel The recognition model and dictionary to use.
+     * @param detectionModel The detection model to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         path: Path,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
+        detectionModel: DetectionModel = BaseDetectionModel,
     ): List<OcrResult> {
         val bytes = SystemFileSystem.source(path).buffered().use { it.readByteArray() }
-        return detectAndRecognizeText(bytes, recognitionModel)
+        return detectAndRecognizeText(bytes, recognitionModel, detectionModel)
     }
 }

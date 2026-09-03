@@ -1,5 +1,6 @@
 package com.github.arthurkun.koo
 
+import com.github.arthurkun.koo.detection.DetectionModel
 import com.github.arthurkun.koo.recognition.RecognitionModel
 
 /**
@@ -17,7 +18,10 @@ import com.github.arthurkun.koo.recognition.RecognitionModel
  */
 public expect class PaddleOcrService : OcrApi {
 
-    override suspend fun detectText(byteArray: ByteArray): List<DetectedResults>
+    override suspend fun detectText(
+        byteArray: ByteArray,
+        detectionModel: DetectionModel,
+    ): List<DetectedResults>
 
     override suspend fun recognizeText(
         byteArray: ByteArray,
@@ -27,6 +31,7 @@ public expect class PaddleOcrService : OcrApi {
     override suspend fun detectAndRecognizeText(
         byteArray: ByteArray,
         recognitionModel: RecognitionModel,
+        detectionModel: DetectionModel,
     ): List<OcrResult>
 
     override fun close()

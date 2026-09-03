@@ -10,6 +10,8 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isGreaterThan
 import assertk.assertions.isNotNull
+import com.github.arthurkun.koo.detection.DetectionModel
+import com.github.arthurkun.koo.detection.DetectionModelCachePolicy
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import kotlinx.coroutines.test.runTest
@@ -45,11 +47,15 @@ class PaddleOcrServiceTest : PaddleOcrServiceTestBase() {
     override fun createPaddleOcrService(
         recognitionModel: RecognitionModel,
         recognitionModelCachePolicy: RecognitionModelCachePolicy,
+        detectionModel: DetectionModel,
+        detectionModelCachePolicy: DetectionModelCachePolicy,
     ): OcrApi {
         return PaddleOcrService(
             platformContext = context,
             recognitionModel = recognitionModel,
             recognitionModelCachePolicy = recognitionModelCachePolicy,
+            detectionModel = detectionModel,
+            detectionModelCachePolicy = detectionModelCachePolicy,
         )
     }
 

@@ -2,6 +2,8 @@ package com.github.arthurkun.koo
 
 import android.graphics.Bitmap
 import android.net.Uri
+import com.github.arthurkun.koo.detection.DetectionModel
+import com.github.arthurkun.koo.detection.base.BaseDetectionModel
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
 import org.opencv.core.Mat
@@ -16,9 +18,13 @@ public interface AndroidOcrApi : OcrApi {
      * Detects text regions in the provided [bitmap].
      *
      * @param bitmap The image to detect text regions in.
+     * @param detectionModel The detection model to use.
      * @return A list of [DetectedResults] describing the detected text regions.
      */
-    public suspend fun detectText(bitmap: Bitmap): List<DetectedResults>
+    public suspend fun detectText(
+        bitmap: Bitmap,
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<DetectedResults>
 
     /**
      * Recognizes text from a single [bitmap], typically a cropped text-line region.
@@ -37,20 +43,26 @@ public interface AndroidOcrApi : OcrApi {
      *
      * @param bitmap The image to perform full OCR on.
      * @param recognitionModel The recognition model and dictionary to use.
+     * @param detectionModel The detection model to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         bitmap: Bitmap,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
+        detectionModel: DetectionModel = BaseDetectionModel,
     ): List<OcrResult>
 
     /**
      * Detects text regions in the image at the specified [uri].
      *
      * @param uri The content URI of the image to be processed.
+     * @param detectionModel The detection model to use.
      * @return A list of [DetectedResults] describing the detected text regions.
      */
-    public suspend fun detectText(uri: Uri): List<DetectedResults>
+    public suspend fun detectText(
+        uri: Uri,
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<DetectedResults>
 
     /**
      * Recognizes text from the image at the specified [uri].
@@ -69,20 +81,26 @@ public interface AndroidOcrApi : OcrApi {
      *
      * @param uri The content URI of the image to perform full OCR on.
      * @param recognitionModel The recognition model and dictionary to use.
+     * @param detectionModel The detection model to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         uri: Uri,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
+        detectionModel: DetectionModel = BaseDetectionModel,
     ): List<OcrResult>
 
     /**
      * Detects text regions in the provided OpenCV [mat].
      *
      * @param mat The OpenCV Mat image to detect text regions in.
+     * @param detectionModel The detection model to use.
      * @return A list of [DetectedResults] describing the detected text regions.
      */
-    public suspend fun detectText(mat: Mat): List<DetectedResults>
+    public suspend fun detectText(
+        mat: Mat,
+        detectionModel: DetectionModel = BaseDetectionModel,
+    ): List<DetectedResults>
 
     /**
      * Recognizes text from the provided OpenCV [mat].
@@ -101,10 +119,12 @@ public interface AndroidOcrApi : OcrApi {
      *
      * @param mat The OpenCV Mat image to perform full OCR on.
      * @param recognitionModel The recognition model and dictionary to use.
+     * @param detectionModel The detection model to use.
      * @return A list of [OcrResult] containing the detected region, recognized text, and score.
      */
     public suspend fun detectAndRecognizeText(
         mat: Mat,
         recognitionModel: RecognitionModel = BaseRecognitionModel,
+        detectionModel: DetectionModel = BaseDetectionModel,
     ): List<OcrResult>
 }

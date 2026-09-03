@@ -4,6 +4,9 @@ import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEmpty
+import com.github.arthurkun.koo.detection.DetectionModel
+import com.github.arthurkun.koo.detection.DetectionModelCachePolicy
+import com.github.arthurkun.koo.detection.base.BaseDetectionModel
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.RecognitionModelCachePolicy
 import com.github.arthurkun.koo.recognition.base.BaseRecognitionModel
@@ -25,6 +28,8 @@ abstract class PaddleOcrServiceTestBase {
     protected abstract fun createPaddleOcrService(
         recognitionModel: RecognitionModel = BaseRecognitionModel,
         recognitionModelCachePolicy: RecognitionModelCachePolicy = RecognitionModelCachePolicy.KEEP_IN_MEMORY,
+        detectionModel: DetectionModel = BaseDetectionModel,
+        detectionModelCachePolicy: DetectionModelCachePolicy = DetectionModelCachePolicy.KEEP_IN_MEMORY,
     ): OcrApi
 
     protected lateinit var paddleOcrService: OcrApi
@@ -57,6 +62,41 @@ abstract class PaddleOcrServiceTestBase {
         assertFailsWith<OCRImageDecodeException> {
             paddleOcrService.detectAndRecognizeText(invalidBytes)
         }
+    }
+
+    @Test
+    fun testDetectTextKeepsExplicitDetectionSessionInMemory() = runTest {
+        val bytes = loadTestResourceBytes(defaultOcrTestCase().imagePath)
+        val detectionModel = CountingDetectionModel()
+
+        val firstBoxes = paddleOcrService.detectText(bytes, detectionModel)
+        val secondBoxes = paddleOcrService.detectText(bytes, detectionModel)
+
+        assertThat(firstBoxes).isNotEmpty()
+        assertThat(secondBoxes).isNotEmpty()
+        assertThat(detectionModel.modelLoadCount).isEqualTo(1)
+    }
+
+    @Test
+    fun testDetectTextLoadEachTimeCreatesNewDetectionSession() = runTest {
+        val bytes = loadTestResourceBytes(defaultOcrTestCase().imagePath)
+        val detectionModel = CountingDetectionModel()
+        val localService = createPaddleOcrService(
+            detectionModel = detectionModel,
+            detectionModelCachePolicy = DetectionModelCachePolicy.LOAD_EACH_TIME,
+        )
+
+        try {
+            val firstBoxes = localService.detectText(bytes, detectionModel)
+            val secondBoxes = localService.detectText(bytes, detectionModel)
+
+            assertThat(firstBoxes).isNotEmpty()
+            assertThat(secondBoxes).isNotEmpty()
+        } finally {
+            localService.close()
+        }
+
+        assertThat(detectionModel.modelLoadCount).isEqualTo(2)
     }
 
     protected fun assertRecognizedTextMatchesBaseline(
@@ -150,7 +190,8 @@ data class ExpectedTextBox(
 internal class CountingRecognitionModel(
     override val id: String = "counting-base-recognition-model",
     private val delegate: RecognitionModel = BaseRecognitionModel,
-) : RecognitionModel {
+) : RecognitionModel by delegate {
+
     var modelLoadCount: Int = 0
         private set
 
@@ -165,6 +206,20 @@ internal class CountingRecognitionModel(
     override suspend fun loadDictionaryBytes(): ByteArray {
         dictionaryLoadCount += 1
         return delegate.loadDictionaryBytes()
+    }
+}
+
+internal class CountingDetectionModel(
+    override val id: String = "counting-base-detection-model",
+    private val delegate: DetectionModel = BaseDetectionModel,
+) : DetectionModel by delegate {
+
+    var modelLoadCount: Int = 0
+        private set
+
+    override suspend fun loadModelBytes(): ByteArray {
+        modelLoadCount += 1
+        return delegate.loadModelBytes()
     }
 }
 

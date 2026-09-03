@@ -34,6 +34,8 @@ kotlin {
             api(libs.kotlinx.io.core)
             api(project(":recognition:model-core"))
             api(project(":recognition:model-base"))
+            api(project(":detection:model-core"))
+            api(project(":detection:model-base"))
             implementation(project(":detection:detection-core"))
             implementation(project(":recognition:recognition-core"))
         }

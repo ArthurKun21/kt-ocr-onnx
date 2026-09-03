@@ -1,33 +1,46 @@
 public abstract interface class com/github/arthurkun/koo/DetectionApi : java/lang/AutoCloseable {
-	public fun detectText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun detectText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Ljava/lang/String;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun detectText ([BLcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/DetectionApi;Ljava/lang/String;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/DetectionApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/DetectionApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/DetectionApi;[BLcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/github/arthurkun/koo/DetectionApi$DefaultImpls {
-	public static fun detectText (Lcom/github/arthurkun/koo/DetectionApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun detectText (Lcom/github/arthurkun/koo/DetectionApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun detectText (Lcom/github/arthurkun/koo/DetectionApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/DetectionApi;Ljava/lang/String;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/DetectionApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/DetectionApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/DetectionApi;Ljava/lang/String;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/DetectionApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/DetectionApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/DetectionApi;[BLcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public abstract interface class com/github/arthurkun/koo/JvmDetectionApi : com/github/arthurkun/koo/DetectionApi {
-	public abstract fun detectText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun detectText (Lorg/bytedeco/opencv/opencv_core/Mat;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/JvmDetectionApi;Lorg/bytedeco/opencv/opencv_core/Mat;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/github/arthurkun/koo/JvmDetectionApi$DefaultImpls {
-	public static fun detectText (Lcom/github/arthurkun/koo/JvmDetectionApi;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun detectText (Lcom/github/arthurkun/koo/JvmDetectionApi;Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun detectText (Lcom/github/arthurkun/koo/JvmDetectionApi;Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/JvmDetectionApi;Ljava/lang/String;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/JvmDetectionApi;Lkotlinx/io/Source;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun detectText (Lcom/github/arthurkun/koo/JvmDetectionApi;Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun detectText$default (Lcom/github/arthurkun/koo/JvmDetectionApi;Lorg/bytedeco/opencv/opencv_core/Mat;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/github/arthurkun/koo/PaddleOcrDetectionService : com/github/arthurkun/koo/JvmDetectionApi {
 	public fun <init> ()V
+	public fun <init> (Lcom/github/arthurkun/koo/detection/DetectionModel;Lcom/github/arthurkun/koo/detection/DetectionModelCachePolicy;)V
+	public synthetic fun <init> (Lcom/github/arthurkun/koo/detection/DetectionModel;Lcom/github/arthurkun/koo/detection/DetectionModelCachePolicy;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun close ()V
-	public fun detectText (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectText (Lkotlinx/io/Source;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectText (Lkotlinx/io/files/Path;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun detectText ([BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Ljava/lang/String;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lkotlinx/io/Source;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lkotlinx/io/files/Path;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText (Lorg/bytedeco/opencv/opencv_core/Mat;Lcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun detectText (Lorg/bytedeco/opencv/opencv_core/Mat;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun detectText ([BLcom/github/arthurkun/koo/detection/DetectionModel;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 

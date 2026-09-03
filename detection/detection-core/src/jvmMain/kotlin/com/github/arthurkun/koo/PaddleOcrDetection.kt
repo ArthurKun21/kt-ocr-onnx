@@ -1,5 +1,6 @@
 package com.github.arthurkun.koo
 
+import com.github.arthurkun.koo.detection.DetectionModel
 import kotlinx.coroutines.CoroutineScope
 import org.bytedeco.javacpp.indexer.FloatIndexer
 import org.bytedeco.javacpp.indexer.IntIndexer
@@ -21,7 +22,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * JVM implementation of text detection using PaddleOCR v5 DB ONNX model.
+ * JVM implementation of text detection using a PaddleOCR v6 DB ONNX model.
  *
  * Extends [PaddleOcrDetectionBase] with JavaCPP OpenCV (`org.bytedeco.opencv.*`) for
  * the DB postprocessing step (contour finding, box scoring, polygon operations).
@@ -29,8 +30,8 @@ import kotlin.math.roundToInt
 @InternalKtOcrONNXApi
 public class PaddleOcrDetection(
     scope: CoroutineScope,
-    modelPath: String = DET_MODEL_PATH,
-) : PaddleOcrDetectionBase(scope, modelPath) {
+    detectionModel: DetectionModel,
+) : PaddleOcrDetectionBase(scope, detectionModel) {
 
     override fun dbPostProcess(
         probMap: Array<FloatArray>,
@@ -49,7 +50,7 @@ public class PaddleOcrDetection(
         for (y in 0 until mapH) {
             for (x in 0 until mapW) {
                 probIndexer.put(y.toLong(), x.toLong(), probMap[y][x])
-                val binaryVal = if (probMap[y][x] > DET_THRESH) 255 else 0
+                val binaryVal = if (probMap[y][x] > detectionModel.detThresh) 255 else 0
                 binaryIndexer.put(y.toLong(), x.toLong(), binaryVal)
             }
         }
@@ -62,7 +63,7 @@ public class PaddleOcrDetection(
         opencv_imgproc.findContours(binaryMat, contours, hierarchy, RETR_LIST, CHAIN_APPROX_SIMPLE)
         hierarchy.close()
 
-        val numContours = min(contours.size().toInt(), DET_MAX_CANDIDATES)
+        val numContours = min(contours.size().toInt(), detectionModel.detMaxCandidates)
         val boxes = mutableListOf<DetectedResults>()
 
         for (i in 0 until numContours) {
@@ -75,7 +76,7 @@ public class PaddleOcrDetection(
                 contour2f.close()
 
                 val sside = min(rotatedRect.size().width(), rotatedRect.size().height())
-                if (sside < DET_MIN_SIZE) continue
+                if (sside < detectionModel.detMinSize) continue
 
                 // Get 4 corner points
                 val pointsMat = Point2f(4)
@@ -93,7 +94,7 @@ public class PaddleOcrDetection(
 
                 // Compute score (box_score_fast)
                 val score = boxScoreFast(probMat, sortedPoints, mapH, mapW)
-                if (score < DET_BOX_THRESH) continue
+                if (score < detectionModel.detBoxThresh) continue
 
                 // Unclip (expand) the polygon
                 val expanded = unclipPolygon(sortedPoints)
@@ -112,7 +113,7 @@ public class PaddleOcrDetection(
                 expandedMat.close()
 
                 val expandedSside = min(expandedRect.size().width(), expandedRect.size().height())
-                if (expandedSside < DET_MIN_SIZE + 2) continue
+                if (expandedSside < detectionModel.detMinSize + 2) continue
 
                 val expandedPointsMat = Point2f(4)
                 expandedRect.points(expandedPointsMat)

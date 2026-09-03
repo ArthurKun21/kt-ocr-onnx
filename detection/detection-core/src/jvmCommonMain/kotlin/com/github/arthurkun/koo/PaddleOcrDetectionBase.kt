@@ -3,7 +3,7 @@ package com.github.arthurkun.koo
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
-import com.github.arthurkun.koo.detection.resources.Res
+import com.github.arthurkun.koo.detection.DetectionModel
 import com.github.arthurkun.koo.imaging.CvImage
 import com.github.micycle1.clipper2.Clipper
 import com.github.micycle1.clipper2.core.Path64
@@ -32,7 +32,8 @@ import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Abstract base class for text detection using PaddleOCR v5 DB (Differentiable Binarization) ONNX model.
+ * Abstract base class for text detection using a PaddleOCR DB (Differentiable Binarization) ONNX
+ * model.
  *
  * Contains all platform-independent logic: ONNX model loading, preprocessing, polygon utilities,
  * and lifecycle management. Platform-specific subclasses implement [dbPostProcess] which uses
@@ -40,7 +41,8 @@ import kotlin.time.Duration.Companion.seconds
  *
  * ## Pipeline
  *
- * 1. **Preprocessing**: Resize (max side -> 960, round to 32), ImageNet normalize, HWC -> NCHW
+ * 1. **Preprocessing**: Resize (max side capped at `detLimitSideLen`, round to 32), ImageNet
+ *    normalize, HWC -> NCHW
  * 2. **Inference**: ONNX model produces a probability map (1, 1, H, W)
  * 3. **Postprocessing**: DB algorithm — binarize, find contours, score, unclip, scale back
  *
@@ -48,12 +50,12 @@ import kotlin.time.Duration.Companion.seconds
  *
  * - **DetResizeForTest**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/data/imaug/operators.py
  * - **DBPostProcess**: https://github.com/PaddlePaddle/PaddleOCR/blob/main/ppocr/postprocess/db_postprocess.py
- * - **PP-OCRv5 config**: configs/det/PP-OCRv5/PP-OCRv5_mobile_det.yml
+ * - **PP-OCRv6 config**: configs/det/PP-OCRv6/PP-OCRv6_small_det.yml
  */
 @InternalKtOcrONNXApi
 public abstract class PaddleOcrDetectionBase(
     @Suppress("UNUSED_PARAMETER") scope: CoroutineScope,
-    private val modelPath: String = DET_MODEL_PATH,
+    protected val detectionModel: DetectionModel,
 ) : AutoCloseable {
 
     private val dispatcher = Dispatchers.Default.limitedParallelism(1)
@@ -86,7 +88,7 @@ public abstract class PaddleOcrDetectionBase(
                 val env = OrtEnvironment.getEnvironment()
                 ortEnvRef.store(env)
 
-                val modelBytes = Res.readBytes(modelPath)
+                val modelBytes = detectionModel.loadModelBytes()
                 logcat(TAG) { "Detection model loaded, size: ${modelBytes.size} bytes" }
 
                 val session = OrtSession.SessionOptions().use { sessionOptions ->
@@ -233,15 +235,18 @@ public abstract class PaddleOcrDetectionBase(
         val h = inputImage.height
         val w = inputImage.width
 
-        // DetResizeForTest for PP-OCRv5 mobile: limit_type="max", limit_side_len=960.
-        val ratio = if (max(h, w) > DET_LIMIT_SIDE_LEN) {
-            DET_LIMIT_SIDE_LEN.toFloat() / max(h, w).toFloat()
+        // DetResizeForTest with limit_type="max" semantics, mirroring the Python inference driver
+        // default (tools/infer/utility.py: det_limit_side_len=960, det_limit_type="max").
+        val limitSideLen = detectionModel.detLimitSideLen
+        val ratio = if (max(h, w) > limitSideLen) {
+            limitSideLen.toFloat() / max(h, w).toFloat()
         } else {
             1.0f
         }
 
-        val resizeH = max((h * ratio / DET_ROUND_TO).roundToInt() * DET_ROUND_TO, DET_ROUND_TO)
-        val resizeW = max((w * ratio / DET_ROUND_TO).roundToInt() * DET_ROUND_TO, DET_ROUND_TO)
+        val roundTo = detectionModel.detRoundTo
+        val resizeH = max((h * ratio / roundTo).roundToInt() * roundTo, roundTo)
+        val resizeW = max((w * ratio / roundTo).roundToInt() * roundTo, roundTo)
 
         // Resize
         val resizedImage = inputImage.resizeTo(resizeH, resizeW)
@@ -255,14 +260,18 @@ public abstract class PaddleOcrDetectionBase(
         val bufferSize = 1 * CHANNELS * resizeH * resizeW
         val buffer = FloatBuffer.allocate(bufferSize)
 
+        // Hoisted out of the per-pixel loop: interface getters allocate on each access.
+        val mean = detectionModel.detMean
+        val std = detectionModel.detStd
+
         try {
             // Service inputs are normalized to RGB before reaching the shared OCR pipeline.
-            // Apply ImageNet mean/std in RGB order: [0.485, 0.456, 0.406].
+            // Apply ImageNet mean/std in RGB order.
             for (c in 0 until CHANNELS) {
                 for (y in 0 until resizeH) {
                     for (x in 0 until resizeW) {
                         val pixel = floatImage.getPixel(y, x)
-                        val normalized = (pixel[c].toFloat() / 255.0f - DET_MEAN[c]) / DET_STD[c]
+                        val normalized = (pixel[c].toFloat() / 255.0f - mean[c]) / std[c]
                         val index = c * resizeH * resizeW + y * resizeW + x
                         buffer.put(index, normalized)
                     }
@@ -349,7 +358,7 @@ public abstract class PaddleOcrDetectionBase(
         val perimeter = polygonPerimeter(points)
         if (perimeter <= 0) return emptyList()
 
-        val distance = area * DET_UNCLIP_RATIO / perimeter
+        val distance = area * detectionModel.detUnclipRatio / perimeter
 
         // Scale to integer coordinates for Clipper2 (it uses long internally)
         val scaleFactor = 1000.0
@@ -418,21 +427,25 @@ public abstract class PaddleOcrDetectionBase(
         isInitialized.store(false)
     }
 
-    public override fun close() {
+    public suspend fun closeSuspending() {
         if (!isClosed.compareAndSet(false, true)) {
             return
         }
 
         try {
-            runBlocking {
-                mutex.withLock {
-                    withTimeout(15.seconds) {
-                        cleanup()
-                    }
+            mutex.withLock {
+                withTimeout(15.seconds) {
+                    cleanup()
                 }
             }
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, TAG) { "Error closing detection: ${e.asLog()}" }
+        }
+    }
+
+    public override fun close() {
+        runBlocking {
+            closeSuspending()
         }
     }
 }

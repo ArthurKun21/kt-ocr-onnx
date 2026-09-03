@@ -7,12 +7,16 @@ import assertk.assertions.isGreaterThan
 import assertk.assertions.isGreaterThanOrEqualTo
 import assertk.assertions.isLessThanOrEqualTo
 import assertk.assertions.isNotEmpty
+import com.github.arthurkun.koo.detection.DetectionModel
+import com.github.arthurkun.koo.detection.DetectionModelCachePolicy
+import com.github.arthurkun.koo.detection.base.BaseDetectionModel
 import com.github.arthurkun.koo.imaging.CvImage
 import kotlinx.coroutines.test.runTest
 import kotlin.math.abs
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
@@ -29,7 +33,10 @@ abstract class PaddleOcrDetectionServiceTestBase {
 
     abstract fun listTestResourceDirectories(path: String): List<String>
 
-    protected abstract fun createPaddleOcrDetectionService(): DetectionApi
+    protected abstract fun createPaddleOcrDetectionService(
+        detectionModel: DetectionModel = BaseDetectionModel,
+        detectionModelCachePolicy: DetectionModelCachePolicy = DetectionModelCachePolicy.KEEP_IN_MEMORY,
+    ): DetectionApi
 
     private lateinit var detectionService: DetectionApi
 
@@ -88,6 +95,58 @@ abstract class PaddleOcrDetectionServiceTestBase {
         }
     }
 
+    @Test
+    fun testDetectTextKeepsExplicitDetectionSessionInMemory() = runTest {
+        val bytes = loadTestResourceBytes(defaultDetectionTestCase().imagePath)
+        val detectionModel = CountingDetectionModel()
+
+        val firstBoxes = detectionService.detectText(bytes, detectionModel)
+        val secondBoxes = detectionService.detectText(bytes, detectionModel)
+
+        assertThat(firstBoxes).isNotEmpty()
+        assertThat(secondBoxes).isNotEmpty()
+        assertThat(detectionModel.modelLoadCount).isEqualTo(1)
+    }
+
+    @Test
+    fun testDetectTextLoadEachTimeCreatesNewDetectionSession() = runTest {
+        val bytes = loadTestResourceBytes(defaultDetectionTestCase().imagePath)
+        val detectionModel = CountingDetectionModel()
+        val localService = createPaddleOcrDetectionService(
+            detectionModel = detectionModel,
+            detectionModelCachePolicy = DetectionModelCachePolicy.LOAD_EACH_TIME,
+        )
+
+        try {
+            val firstBoxes = localService.detectText(bytes, detectionModel)
+            val secondBoxes = localService.detectText(bytes, detectionModel)
+
+            assertThat(firstBoxes).isNotEmpty()
+            assertThat(secondBoxes).isNotEmpty()
+        } finally {
+            localService.close()
+        }
+
+        assertThat(detectionModel.modelLoadCount).isEqualTo(2)
+    }
+
+    @Test
+    fun testCloseRejectsFurtherDetectionRequests() = runTest {
+        val bytes = loadTestResourceBytes(defaultDetectionTestCase().imagePath)
+        val detectionModel = CountingDetectionModel()
+        val localService = createPaddleOcrDetectionService(detectionModel = detectionModel)
+
+        val boxes = localService.detectText(bytes, detectionModel)
+        assertThat(boxes).isNotEmpty()
+
+        localService.close()
+
+        assertFailsWith<OCRClosedException> {
+            localService.detectText(bytes, detectionModel)
+        }
+        assertThat(detectionModel.modelLoadCount).isEqualTo(1)
+    }
+
     protected fun loadDetectionTestCases(): List<DetectionTestImageCase> {
         val cases = listTestResourceDirectories(OCR_TEST_CASES_PATH).map { casePath ->
             DetectionTestImageCase(
@@ -99,6 +158,8 @@ abstract class PaddleOcrDetectionServiceTestBase {
         assertThat(cases).isNotEmpty()
         return cases
     }
+
+    private fun defaultDetectionTestCase(): DetectionTestImageCase = loadDetectionTestCases().first()
 
     private fun loadOptionalBoxes(path: String): List<ExpectedTextBox> {
         return runCatching { loadTestResourceBytes(path).decodeToString() }
@@ -147,6 +208,20 @@ data class DetectionTestImageCase(
 data class ExpectedTextBox(
     val points: List<BoxPoint>,
 )
+
+internal class CountingDetectionModel(
+    override val id: String = "counting-base-detection-model",
+    private val delegate: DetectionModel = BaseDetectionModel,
+) : DetectionModel by delegate {
+
+    var modelLoadCount: Int = 0
+        private set
+
+    override suspend fun loadModelBytes(): ByteArray {
+        modelLoadCount += 1
+        return delegate.loadModelBytes()
+    }
+}
 
 internal const val OCR_TEST_CASES_PATH = "ocr"
 private const val DETECTION_BOX_THRESHOLD = 0.6f

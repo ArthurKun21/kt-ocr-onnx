@@ -1,9 +1,11 @@
-# Porting PaddleOCR Python to Kotlin — a manual verification guide
+# Porting PaddleOCR recognition Python to Kotlin — a manual verification guide
 
-This document explains how the OCR pipeline in this repository maps to PaddleOCR's Python
-reference implementation, and gives a step-by-step procedure to verify a port (or a model swap)
-by hand. It was written while switching recognition from PP-OCRv5 to PP-OCRv6
-(see `plans/2026-09-03-switch-recognition-to-ppocr-v6.md`), but it applies to any future port.
+How the text-recognition pipeline in this repository maps to PaddleOCR's Python reference
+implementation, and how to verify a port (or a model swap) by hand. It was written during the
+PP-OCRv5 → PP-OCRv6 recognition switch (see `plans/2026-09-03-switch-recognition-to-ppocr-v6.md`).
+The detection counterpart lives in `docs/paddleocr-detection-python-to-kotlin.md` — the two
+pipelines share the method but differ in important conventions (channel order, dictionaries,
+postprocessing), so each doc is self-contained.
 
 ## 1. Where the Python ground truth lives
 
@@ -20,29 +22,29 @@ Relevant layout:
 
 | Path | Contents |
 | --- | --- |
-| `configs/<task>/<family>/<model>.yml` | Per-model config: input shape, dictionary, postprocess, normalization |
-| `tools/infer/predict_rec.py`, `predict_det.py` | Inference drivers — the actual runtime preprocessing/decoding used in deployment |
-| `ppocr/data/imaug/` | Transform implementations (`RecResizeImg`, `DetResizeForTest`, `NormalizeImage`, …) |
-| `ppocr/postprocess/` | Decoders (`rec_postprocess.py::CTCLabelDecode`, `db_postprocess.py`) |
+| `configs/rec/<family>/<model>.yml` | Per-model config: input shape, dictionary, postprocess |
+| `tools/infer/predict_rec.py` | Inference driver — the actual runtime preprocessing/decoding used in deployment |
+| `ppocr/data/imaug/rec_img_aug.py` | `RecResizeImg` (training/eval transform) |
+| `ppocr/postprocess/rec_postprocess.py` | `CTCLabelDecode` / `BaseRecLabelDecode` |
 | `ppocr/utils/dict/` | Character dictionaries (one entry per line) |
 
 **Key rule:** the *inference contract* is defined by the per-model config yml **plus** the
-`tools/infer/` driver. Training configs and the PaddleX/python API defaults sometimes differ
-from each other and from what `tools/infer` does — when in doubt, trace `tools/infer` because
-that is the deployment path the ONNX models were exported for.
+`tools/infer/` driver. Training configs and the PaddleX/python API defaults sometimes differ from
+each other and from what `tools/infer` does — when in doubt, trace `tools/infer` because that is
+the deployment path the ONNX models were exported for.
 
 ## 2. Tracing a model's inference contract — the five questions
 
-For any new model, answer these five questions from Python, then check the Kotlin side implements
-exactly that:
+For any new recognition model, answer these five questions from Python, then check the Kotlin
+side implements exactly that:
 
 | # | Question | Where the answer lives (Python) | Where it is implemented (this repo) |
 | --- | --- | --- | --- |
 | 1 | Input H/W and resize rule | yml `Eval: RecResizeImg: image_shape` (or `d2s_train_image_shape`) + `tools/infer/predict_rec.py::resize_norm_img` | `RecognitionDefaults.kt` (`TARGET_HEIGHT`, `TARGET_WIDTH`), `RecognitionImagePreprocessor` actuals |
-| 2 | Normalization | rec: hard-coded `(x/255 - 0.5) / 0.5` in `resize_norm_img`; det: yml `NormalizeImage: mean/std` | rec preprocessor; `DET_MEAN`/`DET_STD` in `DetectionDefaults.kt` |
+| 2 | Normalization | hard-coded `(x/255 - 0.5) / 0.5` in `resize_norm_img` | rec preprocessor |
 | 3 | Dictionary + space char | yml `character_dict_path`, `use_space_char` | `model-base`/`model-v5-*` resource consts + `parseDictionary` |
 | 4 | Postprocess algorithm | yml `PostProcess: name` (rec: `CTCLabelDecode`) | `PaddleOcrRecognition.ctcDecode` |
-| 5 | ONNX graph I/O | export artifacts (verify with the snippet in §7 step 2) | input name `"x"` in `PaddleOcrRecognition.runInference` |
+| 5 | ONNX graph I/O | export artifacts (verify with §6 step 2) | input name `"x"` in `PaddleOcrRecognition.runInference` |
 
 ## 3. Recognition preprocessing — `resize_norm_img` → `preprocessRecognitionImage`
 
@@ -97,7 +99,7 @@ Line-by-line correspondence:
 | `cv2.resize(img, (resized_w, imgH))` | `resize(mat, resizedImage, Size(resizedW, TARGET_HEIGHT))` | Same default interpolation (bilinear). OpenCV sizes are `(width, height)` on both sides — a classic swap bug. |
 | `transpose((2,0,1)) / 255 - 0.5 / 0.5` | loop writes `c*H*W + y*W + x` | `transpose(2,0,1)` turns HWC BGR into CHW; the explicit loop writes channel-major, which is the same thing. The indexer is `(y, x, channel)` because OpenCV Mats stay HWC. |
 | `np.zeros((imgC, imgH, imgW))` then copy region | `FloatBuffer.allocate(...)` (zero-filled) then writes only `x < resizedW` | Padding is **zeros in normalized space** (i.e. gray 0.5 in raw pixel space), matching Python exactly. |
-| BGR everywhere (`DecodeImage: img_mode: BGR`) | OpenCV Mat is BGR, channels read in order | The rec models are trained on BGR — **do not** convert to RGB here (see §6). |
+| BGR everywhere (`DecodeImage: img_mode: BGR`) | OpenCV Mat is BGR, channels read in order | The rec models are trained on BGR — **do not** convert to RGB here (see §5). |
 
 ## 4. Recognition postprocessing — `CTCLabelDecode` → `parseDictionary` + `ctcDecode`
 
@@ -166,30 +168,10 @@ is computed over kept characters only on both sides. Unknown indices are silentl
 `dictionary[maxIdx]?.let` null-safety, which cannot happen when the dict size matches the model's
 class count (`N + 2`) — a mismatch here is itself a bug signal.
 
-## 5. Detection — a different flavor of the same exercise
+## 5. Gotchas checklist (recognition)
 
-Detection differs from recognition in two important ways and is worth reading as the
-"other" template:
-
-- **Resize** (`ppocr/data/imaug/operators.py::DetResizeForTest`): the inference driver
-  (`tools/infer/utility.py`) defaults to `det_limit_side_len=960, det_limit_type="max"` — cap the
-  **max** side at 960, then round both sides to the nearest multiple of 32 with a floor of 32
-  (`max(int(round(side / 32) * 32), 32)`). Python also guards `max_side_limit=4000` after the
-  ratio resize; Kotlin (`PaddleOcrDetectionBase.preprocessImage`) omits that guard (only relevant
-  for very large images).
-- **Normalization** (`NormalizeImage` in the det yml): ImageNet mean/std
-  `(x/255 - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]` applied in **RGB** order, even though
-  `DecodeImage` loads BGR. This is the opposite of recognition, which keeps BGR throughout.
-  The Kotlin service converts crops to RGB upstream and `preprocessImage` comments this explicitly.
-- **DB postprocess** (`ppocr/postprocess/db_postprocess.py`): threshold → binary map → contours →
-  `box_score_fast` → unclip (Clipper offset) → rescale. Kotlin: `dbPostProcess` in
-  `detection-core` (`jvmMain` uses JavaCPP OpenCV, `androidMain` uses `org.opencv.*`), with
-  constants in `DetectionDefaults.kt`.
-
-## 6. Gotchas checklist
-
-1. **Channel order.** Recognition: BGR end-to-end (matches training). Detection: BGR loaded, RGB
-   normalized. Mixing these up silently degrades accuracy — nothing crashes.
+1. **Channel order.** Recognition keeps BGR end-to-end (matches training); the rec models are
+   trained on BGR. Detection normalizes in RGB — don't carry that convention over here.
 2. **Padding in normalized space.** Padding value is `0.0` *after* `(x/255 - 0.5)/0.5`, i.e. gray
    127.5 in raw pixels. Padding with raw-pixel zeros would be a different (wrong) gray.
 3. **`ceil` vs `round`.** `resize_norm_img` uses `math.ceil` for the resized width; det rounds to
@@ -201,12 +183,12 @@ Detection differs from recognition in two important ways and is worth reading as
    always runs batch=1 at 320 wide. Fine for correctness, just not bit-identical to a Python run
    that used a wider batch.
 6. **ONNX input name.** The Kotlin session call hardcodes `"x"` (the paddle2onnx convention for
-   PaddleOCR exports). Verify per model (§7 step 2).
+   PaddleOCR exports). Verify per model (§6 step 2).
 7. **OpenCV size order** is `(width, height)` everywhere; the Mat indexer is `(y, x, channel)`.
 8. **Intentional simplifications** in this port (documented, not bugs): no `valid_ratio`, no
    `return_word_box`, no Arabic `pred_reverse`, no NRTR/attention decoders — greedy CTC only.
 
-## 7. Manual verification workflow
+## 6. Manual verification workflow
 
 ### Step 0 — Pin the Python revision
 
@@ -219,10 +201,10 @@ git clone --depth 1 https://github.com/PaddlePaddle/PaddleOCR /tmp/paddleocr
 ### Step 1 — Fill the five-question table (§2) from the yml + driver
 
 Read the model's yml (`configs/rec/PP-OCRv6/PP-OCRv6_small_rec.yml` etc.) and the matching
-`tools/infer/predict_*.py` function. Every constant in `RecognitionDefaults.kt` /
-`DetectionDefaults.kt` / `Defaults.kt` should trace back to a yml line or a driver default.
+`tools/infer/predict_rec.py` function. Every constant in `RecognitionDefaults.kt` should trace
+back to a yml line or a driver default.
 
-### Step 2 — Inspect the ONNX graph
+### Step 2 — Inspect the ONNX graph and the dictionary
 
 ```python
 import onnx
@@ -314,7 +296,7 @@ JVM suites run the full pipeline against them:
 If a model swap changes recognized text, update the baselines **after** confirming with step 4
 that the new output is actually correct — the baselines encode expected model behavior, not truth.
 
-## 8. Worked example — PP-OCRv5 → PP-OCRv6
+## 7. Worked example — PP-OCRv5 → PP-OCRv6 recognition
 
 What was actually checked for the v6 switch (PR #18104), in order:
 
@@ -330,30 +312,12 @@ What was actually checked for the v6 switch (PR #18104), in order:
 5. **Golden tests**: recognition + pipeline JVM suites passed unchanged, which also validated the
    hardcoded input name `"x"`.
 
-## 9. Known discrepancies found while writing this guide
-
-Pre-existing items noticed during the v6 work — none affect recognition; listed here so a future
-verification session doesn't mistake them for porting errors:
-
-- **Det resize limit.** `PaddleOcrDetectionBase.preprocessImage` caps the max side at
-  `DET_LIMIT_SIDE_LEN = 736` (`DetectionDefaults.kt`), while the Python inference driver defaults
-  to 960 (`det_limit_type="max"`). Its own KDoc says 960, and `DetectionDefaults.kt`'s comment
-  says `limit_type="min"` — the implemented behavior is max-side capping at 736. Either the
-  constant or the comments should move; smaller inputs trade a little accuracy for speed.
-- **Det limit-type semantics.** Related to the above: `Defaults.kt` (pipeline module) documents
-  `DetResizeForTest` as `limit_type="min"` (scale small images *up*), but the code implements the
-  max-side rule. `DetResizeForTest` with no kwargs defaults to min/736 in
-  `ppocr/data/imaug/operators.py`, so the yml training path and the `tools/infer` path genuinely
-  differ upstream too.
-
-## 10. File map
+## 8. File map
 
 | Contract piece | PaddleOCR Python | This repo (Kotlin) |
 | --- | --- | --- |
+| Model + dict bytes | exported inference model directory | `recognition/model-base` (v6), `recognition/model-v5-base`, `recognition/model-v5-kr` (Korean) — all implement `recognition/model-core`'s `RecognitionModel` |
 | Rec preprocessing | `tools/infer/predict_rec.py::TextRecognizer.resize_norm_img` | `recognition/recognition-core/src/jvmCommonMain/.../RecognitionImagePreprocessor.kt` (expect) + `jvmMain` / `androidMain` actuals; constants in `recognition-core/src/commonMain/.../RecognitionDefaults.kt` |
 | Rec decode | `ppocr/postprocess/rec_postprocess.py::CTCLabelDecode` (+ `BaseRecLabelDecode`) | `recognition/recognition-core/src/jvmCommonMain/.../PaddleOcrRecognition.kt::parseDictionary` / `ctcDecode` |
-| Model + dict bytes | exported inference model directory | `recognition/model-base` (v6), `recognition/model-v5-base`, `recognition/model-v5-kr` (Korean) — all implement `recognition/model-core`'s `RecognitionModel` |
-| Det preprocessing | `tools/infer/predict_det.py`, `ppocr/data/imaug/operators.py::DetResizeForTest`, yml `NormalizeImage` | `detection/detection-core/src/jvmCommonMain/.../PaddleOcrDetectionBase.kt::preprocessImage`; constants in `detection-core/src/commonMain/.../DetectionDefaults.kt` |
-| Det postprocess | `ppocr/postprocess/db_postprocess.py` | `detection/detection-core/src/jvmMain/.../PaddleOcrDetection.kt::dbPostProcess` (+ `androidMain` actual) |
-| Config constants | `configs/rec/**`, `configs/det/**` ymls | `kt-ocr-onnx/src/commonMain/.../Defaults.kt`, `DetectionDefaults.kt`, `RecognitionDefaults.kt` |
-| Golden tests | — | `kt-ocr-onnx/src/sharedTestAssets/ocr/` + `PaddleOcrServiceTestBase` / `PaddleOcrRecognitionServiceTestBase` |
+| Config constants | `configs/rec/**` ymls | `recognition-core/.../RecognitionDefaults.kt` + `kt-ocr-onnx/.../Defaults.kt` |
+| Golden tests | — | `kt-ocr-onnx/src/sharedTestAssets/ocr/` + `PaddleOcrRecognitionServiceTestBase` / `PaddleOcrServiceTestBase` |

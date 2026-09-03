@@ -1,5 +1,7 @@
 package com.github.arthurkun.koo
 
+import com.github.arthurkun.koo.detection.DetectionModel
+import com.github.arthurkun.koo.detection.DetectionModelCachePolicy
 import java.nio.file.Files
 import java.nio.file.Paths
 
@@ -12,8 +14,14 @@ import java.nio.file.Paths
  */
 class PaddleOcrDetectionServiceJvmTest : PaddleOcrDetectionServiceTestBase() {
 
-    override fun createPaddleOcrDetectionService(): DetectionApi {
-        return PaddleOcrDetectionService()
+    override fun createPaddleOcrDetectionService(
+        detectionModel: DetectionModel,
+        detectionModelCachePolicy: DetectionModelCachePolicy,
+    ): DetectionApi {
+        return PaddleOcrDetectionService(
+            detectionModel = detectionModel,
+            detectionModelCachePolicy = detectionModelCachePolicy,
+        )
     }
 
     override fun loadTestResourceBytes(path: String): ByteArray {

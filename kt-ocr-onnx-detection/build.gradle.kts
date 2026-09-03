@@ -28,6 +28,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":kt-ocr-onnx-core"))
+            api(project(":detection:model-core"))
+            api(project(":detection:model-base"))
             api(libs.kotlinx.io.core)
             implementation(project(":detection:detection-core"))
         }
@@ -69,6 +71,6 @@ mavenPublishing {
 
     pom {
         name.set("Kt OCR ONNX Detection")
-        description.set("Text detection API for kt-ocr-onnx using PaddleOCR v5 ONNX models.")
+        description.set("Text detection API for kt-ocr-onnx using PaddleOCR v6 ONNX models.")
     }
 }
