@@ -4,4 +4,4 @@ This is a kmp library for OCR using ONNX models. It is based on the [PaddleOCR](
 
 ## Resources
 
-[PaddleOCR v5 Documentation](https://www.paddleocr.ai/latest/en/version3.x/pipeline_usage/OCR.html)
+[PaddleOCR v6 Documentation](https://www.paddleocr.ai/latest/en/version3.x/pipeline_usage/OCR.html)
