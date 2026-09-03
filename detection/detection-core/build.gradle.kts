@@ -2,7 +2,6 @@ import koo.buildlogic.MAVEN_PUBLISH_GROUP_ID
 
 plugins {
     id("koo.library.kmp")
-    id("koo.compose")
     id("koo.maven.publish")
     id("koo.opencv.jvm.platform")
 }
@@ -12,14 +11,12 @@ kotlin {
 
     android {
         namespace = "com.github.arthurkun.koo.detection"
-        androidResources.enable = true
     }
 
     sourceSets {
         commonMain.dependencies {
             api(project(":kt-ocr-onnx-core"))
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.resources)
+            api(project(":detection:model-core"))
         }
 
         val jvmCommonMain = create("jvmCommonMain") {
@@ -45,10 +42,6 @@ kotlin {
             }
         }
     }
-}
-
-compose.resources {
-    packageOfResClass = "com.github.arthurkun.koo.detection.resources"
 }
 
 mavenPublishing {
