@@ -71,6 +71,6 @@ mavenPublishing {
 
     pom {
         name.set("Kt OCR ONNX Recognition")
-        description.set("Text recognition API for kt-ocr-onnx using PaddleOCR v5 ONNX models.")
+        description.set("Text recognition API for kt-ocr-onnx using PaddleOCR v6 ONNX models.")
     }
 }

@@ -7,7 +7,7 @@ package com.github.arthurkun.koo
  * Coordinates are in the original (pre-resize) image space.
  *
  * @property points 4 corner [BoxPoint]s in original image coordinates
- * @property score Average probability within the detected region (> [DET_BOX_THRESH])
+ * @property score Average probability within the detected region (> the model's `detBoxThresh`)
  */
 public data class DetectedResults(
     public val points: List<BoxPoint>,

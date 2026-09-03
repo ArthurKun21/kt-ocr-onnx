@@ -3,6 +3,8 @@ package com.github.arthurkun.koo
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.github.arthurkun.koo.detection.DetectionModel
+import com.github.arthurkun.koo.detection.DetectionModelCachePolicy
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -31,8 +33,15 @@ class PaddleOcrDetectionServiceTest : PaddleOcrDetectionServiceTestBase() {
         return listAndroidTestAssetDirectories(path)
     }
 
-    override fun createPaddleOcrDetectionService(): DetectionApi {
-        return PaddleOcrDetectionService(platformContext = context)
+    override fun createPaddleOcrDetectionService(
+        detectionModel: DetectionModel,
+        detectionModelCachePolicy: DetectionModelCachePolicy,
+    ): DetectionApi {
+        return PaddleOcrDetectionService(
+            platformContext = context,
+            detectionModel = detectionModel,
+            detectionModelCachePolicy = detectionModelCachePolicy,
+        )
     }
 
     @Before
