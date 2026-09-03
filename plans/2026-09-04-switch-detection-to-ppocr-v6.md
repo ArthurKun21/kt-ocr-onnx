@@ -6,7 +6,7 @@
   small for recognition)
 - Guidance: PaddleOCR PR [#18104](https://github.com/PaddlePaddle/PaddleOCR/pull/18104)
 - See also: `plans/2026-09-03-switch-recognition-to-ppocr-v6.md`,
-  `docs/paddleocr-python-to-kotlin.md`
+  `docs/paddleocr-detection-python-to-kotlin.md`
 
 ## Background
 
@@ -100,7 +100,9 @@ make each model self-describing.
 - `kt-ocr-onnx/Defaults.kt`: dead `DET_*` block removed; dangling `[DET_ROUND_TO]` /
   `[DET_BOX_THRESH]` KDoc links fixed (the latter in `kt-ocr-onnx-core/.../DetectedResults.kt`).
 - `kt-ocr-onnx-recognition/build.gradle.kts`: pom description "v5" → v6.
-- `AGENTS.md`, `docs/paddleocr-python-to-kotlin.md` updated.
+- `AGENTS.md` updated; the porting guide split into
+  `docs/paddleocr-detection-python-to-kotlin.md` and
+  `docs/paddleocr-recognition-python-to-kotlin.md`.
 
 ## Verification
 
