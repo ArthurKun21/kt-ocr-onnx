@@ -1,13 +1,13 @@
 package com.github.arthurkun.koo
 
 /**
- * Target height for PP-OCRv5 recognition model.
+ * Target height for PP-OCRv6 recognition model.
  * The model expects images with height of 48 pixels.
  */
 internal const val TARGET_HEIGHT = 48
 
 /**
- * Target width for PP-OCRv5 recognition model.
+ * Target width for PP-OCRv6 recognition model.
  * Images are padded to this width.
  */
 internal const val TARGET_WIDTH = 320

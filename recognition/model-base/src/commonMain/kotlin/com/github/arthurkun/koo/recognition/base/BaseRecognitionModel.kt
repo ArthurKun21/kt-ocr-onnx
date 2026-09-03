@@ -3,9 +3,9 @@ package com.github.arthurkun.koo.recognition.base
 import com.github.arthurkun.koo.recognition.RecognitionModel
 import com.github.arthurkun.koo.recognition.base.resources.Res
 
-/** PaddleOCR v5 mobile recognition model bundled with the library. */
+/** PaddleOCR v6 small recognition model bundled with the library. */
 public object BaseRecognitionModel : RecognitionModel {
-    override val id: String = "pp-ocrv5-mobile-base"
+    override val id: String = "pp-ocrv6-small-base"
 
     override suspend fun loadModelBytes(): ByteArray {
         return Res.readBytes(MODEL_PATH)
