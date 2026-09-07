@@ -1,5 +1,2 @@
 jdk:
   - openjdk21
-
-before_install:
-  - rm -f gradle/gradle-daemon-jvm.properties
