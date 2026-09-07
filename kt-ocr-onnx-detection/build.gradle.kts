@@ -28,8 +28,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":kt-ocr-onnx-core"))
-            api(project(":detection:model-core"))
-            api(project(":detection:model-base"))
+            api(project(":detection:detection-model-core"))
+            api(project(":detection:detection-model-base"))
             api(libs.kotlinx.io.core)
             implementation(project(":detection:detection-core"))
         }

@@ -10,13 +10,13 @@ kotlin {
     explicitApi()
 
     android {
-        namespace = "com.github.arthurkun.koo.detection.base"
+        namespace = "com.github.arthurkun.koo.detection.v5.base"
         androidResources.enable = true
     }
 
     sourceSets {
         commonMain.dependencies {
-            api(project(":detection:model-core"))
+            api(project(":detection:detection-model-core"))
             implementation(libs.compose.runtime)
             implementation(libs.compose.resources)
         }
@@ -24,18 +24,18 @@ kotlin {
 }
 
 compose.resources {
-    packageOfResClass = "com.github.arthurkun.koo.detection.base.resources"
+    packageOfResClass = "com.github.arthurkun.koo.detection.v5.base.resources"
 }
 
 mavenPublishing {
     coordinates(
         groupId = MAVEN_PUBLISH_GROUP_ID,
-        artifactId = "kt-ocr-onnx-detection-model-base",
+        artifactId = "kt-ocr-onnx-detection-model-v5-base",
         version = version.toString(),
     )
 
     pom {
-        name.set("Kt OCR ONNX Model Base")
-        description.set("Bundled detection model resources used by kt-ocr-onnx artifacts.")
+        name.set("Kt OCR ONNX Detection Model V5 Base")
+        description.set("Bundled PP-OCRv5 detection model resources used by kt-ocr-onnx artifacts.")
     }
 }

@@ -16,7 +16,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":kt-ocr-onnx-core"))
-            api(project(":detection:model-core"))
+            api(project(":detection:detection-model-core"))
         }
 
         val jvmCommonMain = create("jvmCommonMain") {

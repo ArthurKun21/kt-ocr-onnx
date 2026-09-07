@@ -13,8 +13,8 @@ tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
 
-version = providers.environmentVariable("RELEASE_TAG")
-    .map { it.removePrefix("v") }
+version = providers.gradleProperty("version")
+    .orElse(providers.environmentVariable("RELEASE_TAG").map { it.removePrefix("v") })
     .getOrElse("1.0.0")
 
 subprojects {
