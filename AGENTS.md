@@ -1,5 +1,11 @@
 # AGENTS.md
 
+## Git Commit Policy
+
+- **Never run `git commit` automatically.**
+- **Never run `git commit --amend` under any circumstances**.
+- If unsure whether a change should be part of an existing commit or a new one, **default to a new commit**.
+
 ## Build, lint, test
 
 - JVM tests: `./gradlew :kt-ocr-onnx:jvmTest` (or `:kt-ocr-onnx-detection:jvmTest`,
