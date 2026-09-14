@@ -12,7 +12,7 @@ opencv_android = "5.0.0.1"
 javacpp = "1.5.14"
 javacv = "4.14.0-1.5.14"
 openblas = "0.3.34-1.5.14"
-onnxruntime = "1.29.0"
+onnxruntime = "1.30.0"
 clipper2 = "2.0.1"
 
 assertk = "0.28.1"
