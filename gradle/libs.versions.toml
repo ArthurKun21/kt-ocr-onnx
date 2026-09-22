@@ -3,7 +3,7 @@ kotlin = "2.4.20"
 
 agp = "9.4.0"
 
-compose_multiplatform = "1.12.0"
+compose_multiplatform = "1.12.1"
 
 kotlinx_coroutines_core = "1.11.0"
 kotlinx_io = "0.9.1"
